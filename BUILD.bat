@@ -1,26 +1,25 @@
 @ECHO OFF
-ECHO - Cleaning publish dir...
+ECHO - Cleaning Publish Dirs...
 CD "%lone_publish_path%"
+if %ERRORLEVEL% NEQ 0 (goto ERROR)
 DEL *.* /F /Q
-ECHO - Publishing EFT...
-dotnet publish "%lone_eft_project%" ^
+
+ECHO - Publishing Lone EFT Solution...
+dotnet publish "%lone_eft_solution%" ^
     --configuration Release ^
     --framework net9.0-windows ^
     --runtime win-x64 ^
-    --self-contained false ^
+    --no-self-contained ^
     /p:DebugSymbols=false ^
     /p:DebugType=none ^
     --output "%lone_publish_path%"
-ECHO - Publishing Arena...
-dotnet publish "%lone_arena_project%" ^
-    --configuration Release ^
-    --framework net9.0-windows ^
-    --runtime win-x64 ^
-    --self-contained false ^
-    /p:DebugSymbols=false ^
-    /p:DebugType=none ^
-    --output "%lone_publish_path%"
+if %ERRORLEVEL% NEQ 0 (goto ERROR)
 
 ECHO - Done
 PAUSE
 EXIT 0
+
+:ERROR
+ECHO - ERROR!
+PAUSE
+EXIT 1
