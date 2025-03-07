@@ -84,24 +84,7 @@ namespace arena_dma_radar
         {
             try
             {
-                try
-                {
-                    DirectoryInfo loneCfgPath = new(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Lones-Client"));
-                    if (!ConfigPath.Exists && loneCfgPath.Exists)
-                    {
-                        ConfigPath.Create();
-                        foreach (var file in loneCfgPath.EnumerateFiles())
-                            file.CopyTo(Path.Combine(ConfigPath.FullName, file.Name));
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("ERROR Importing Lone Config(s)." +
-                        $"Exception Info: {ex}",
-                        Program.Name,
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Warning);
-                }
+                TryImportLoneCfg();
                 ConfigPath.Create();
                 var config = Config.Load();
                 eft_dma_shared.SharedProgram.Initialize(ConfigPath, config);
@@ -111,6 +94,31 @@ namespace arena_dma_radar
             {
                 MessageBox.Show(ex.ToString(), Program.Name, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// If user is a former managed Lone EFT User, try import their config.
+        /// </summary>
+        private static void TryImportLoneCfg()
+        {
+            try
+            {
+                DirectoryInfo loneCfgPath = new(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Lones-Client"));
+                if (!ConfigPath.Exists && loneCfgPath.Exists)
+                {
+                    ConfigPath.Create();
+                    foreach (var file in loneCfgPath.EnumerateFiles())
+                        file.CopyTo(Path.Combine(ConfigPath.FullName, file.Name));
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("ERROR Importing Lone Config(s)." +
+                    $"Exception Info: {ex}",
+                    Program.Name,
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
             }
         }
 

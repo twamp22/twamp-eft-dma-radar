@@ -7,26 +7,10 @@ namespace eft_dma_shared.Common.Misc.Data.TarkovMarket
 {
     internal static class TarkovDevCore
     {
-        private static readonly HttpClient _client;
         private static readonly JsonSerializerOptions _jsonOptions = new()
         {
             PropertyNameCaseInsensitive = true
         };
-
-        static TarkovDevCore()
-        {
-            var handler = new HttpClientHandler()
-            {
-                AllowAutoRedirect = true,
-                SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13,
-                AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip
-            };
-            _client = new HttpClient(handler);
-            _client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue("identity"));
-            _client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue("deflate"));
-            _client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
-            _client.Timeout = TimeSpan.FromSeconds(20);
-        }
 
         public static async Task<TarkovDevQuery> QueryTarkovDevAsync()
         {
@@ -213,7 +197,11 @@ namespace eft_dma_shared.Common.Misc.Data.TarkovMarket
                 """
                 }
             };
-            using var response = await _client.PostAsJsonAsync("https://api.tarkov.dev/graphql", query);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            using var response = await SharedProgram.HttpClient.PostAsJsonAsync(
+                requestUri: "https://api.tarkov.dev/graphql", 
+                value: query,
+                cancellationToken: cts.Token);
             response.EnsureSuccessStatusCode();
             return await JsonSerializer.DeserializeAsync<TarkovDevQuery>(await response.Content.ReadAsStreamAsync(), _jsonOptions);
         }
