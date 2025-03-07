@@ -15,7 +15,10 @@ dotnet publish "%lone_eft_solution%" ^
     --output "%lone_publish_path%"
 if %ERRORLEVEL% NEQ 0 (goto ERROR)
 
-ECHO - Done
+7z a ..\lone-eft-dma-radar.zip "%lone_publish_path%\*.*" -plone -r -aoa
+if %ERRORLEVEL% NEQ 0 (goto ERROR)
+
+ECHO - Build OK
 PAUSE
 EXIT 0
 
