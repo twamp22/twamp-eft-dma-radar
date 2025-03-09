@@ -245,8 +245,8 @@ namespace eft_dma_radar.UI.ESP
                             !CameraManagerBase.IsADS &&
                             !(ESP.Config.ShowAimLock && MemWriteFeature<Aimbot>.Instance.Cache?.AimbotLockedPlayer is not null))
                             DrawFireportAim(canvas, localPlayer);
-                        if (Config.ESP.ShowStatusText)
-                            DrawStatusText(canvas);
+                        //if (Config.ESP.ShowStatusText)
+                            //DrawStatusText(canvas);
                     }
                 }
             }
