@@ -150,7 +150,7 @@ namespace eft_dma_radar.Tarkov.GameWorld
                 }
                 catch (Exception ex)
                 {
-                    LoneLogging.WriteLine($"ERROR Instantiating Game Instance: {ex}");
+                    //LoneLogging.WriteLine($"ERROR Instantiating Game Instance: {ex}");
                 }
                 finally
                 {

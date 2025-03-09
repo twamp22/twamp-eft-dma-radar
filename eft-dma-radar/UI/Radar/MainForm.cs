@@ -1897,7 +1897,6 @@ namespace eft_dma_radar.UI.Radar
             {
                 var fps = Interlocked.Exchange(ref _fps, 0); // Get FPS -> Reset FPS counter
                 var title = Program.Name;
-                if (inRaid) title += $" ({fps} fps)";
                 Text = title; // Set new window title
                 _fpsSw.Restart();
             }

@@ -152,7 +152,7 @@ namespace eft_dma_radar.Tarkov
                 }
                 catch (Exception ex)
                 {
-                    LoneLogging.WriteLine($"Game Startup [FAIL]: {ex}");
+                    //LoneLogging.WriteLine($"Game Startup [FAIL]: {ex}");
                     OnGameStopped();
                     Thread.Sleep(1000);
                 }

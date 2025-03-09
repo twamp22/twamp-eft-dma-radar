@@ -40,11 +40,13 @@ namespace eft_dma_radar.Tarkov.Features.MemoryWrites.Patches
         private static ulong Lookup_SetUpSpawnInfo()
         {
             if (!NativeHook.Initialized)
-                throw new Exception("NativeHook not initialized!");
+                Console.WriteLine("NativeHook not initialized!");
+                //throw new Exception("NativeHook not initialized!");
             var @class = MonoLib.MonoClass.Find("Assembly-CSharp", ClassNames.FixWildSpawnType.ClassName, out ulong classAddr);
             classAddr.ThrowIfInvalidVirtualAddress();
             if (NativeMethods.CompileClass(classAddr) == 0)
-                throw new Exception("Failed to compile class");
+                Console.WriteLine("Failed to compile class");
+                //throw new Exception("Failed to compile class");
             if (@class.TryFindJittedMethod(ClassNames.FixWildSpawnType.MethodName, out ulong method))
             {
                 return method;
