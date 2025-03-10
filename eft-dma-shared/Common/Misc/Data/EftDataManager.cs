@@ -115,7 +115,7 @@ namespace eft_dma_shared.Common.Misc.Data
             }
             catch (Exception ex)
             {
-                MessageBox.Show("ERROR getting updated Data File. Will use old file (if possible): " + ex.ToString());
+                MessageBox.Show($"ERROR Getting Updated Tarkov Market Data. Will use backup source(s).\n{ex}");
                 return null;
             }
         }
