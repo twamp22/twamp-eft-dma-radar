@@ -87,7 +87,15 @@ namespace eft_dma_shared.Common.Misc.Data
                 json = await File.ReadAllTextAsync(_dataFile);
             }
             json ??= await GetDefaultDataAsync();
-            data = JsonSerializer.Deserialize<TarkovMarketData>(json, jsonOptions);
+            try
+            {
+                data = JsonSerializer.Deserialize<TarkovMarketData>(json, jsonOptions);
+            }
+            catch (JsonException)
+            {
+                File.Delete(_dataFile); // Delete data if json is corrupt.
+                throw;
+            }
             ArgumentNullException.ThrowIfNull(data, nameof(data));
             return data;
         }
