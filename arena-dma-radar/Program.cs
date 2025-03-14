@@ -35,6 +35,7 @@ using arena_dma_radar.UI.ESP;
 using eft_dma_shared.Common.Maps;
 using arena_dma_radar.Arena.Features;
 using eft_dma_shared.Common.Misc.Data;
+using eft_dma_shared.Common.UI;
 
 [assembly: AssemblyTitle(Program.Name)]
 [assembly: AssemblyProduct(Program.Name)]
@@ -130,6 +131,7 @@ namespace arena_dma_radar
         private static void ConfigureProgram()
         {
             ApplicationConfiguration.Initialize();
+            using var loading = LoadingForm.Create();
             EftDataManager.ModuleInitAsync().GetAwaiter().GetResult();
             LoneMapManager.ModuleInit();
             MemoryInterface.ModuleInit();

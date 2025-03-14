@@ -35,6 +35,7 @@ using eft_dma_shared.Common.Maps;
 using eft_dma_radar.Tarkov.Features;
 using eft_dma_radar.Tarkov.Features.MemoryWrites.Patches;
 using eft_dma_shared.Common.Misc.Data;
+using eft_dma_shared.Common.UI;
 
 [assembly: AssemblyTitle(Program.Name)]
 [assembly: AssemblyProduct(Program.Name)]
@@ -130,6 +131,7 @@ namespace eft_dma_radar
         private static void ConfigureProgram()
         {
             ApplicationConfiguration.Initialize();
+            using var loading = LoadingForm.Create();
             EftDataManager.ModuleInitAsync().GetAwaiter().GetResult();
             LoneMapManager.ModuleInit();
             MemoryInterface.ModuleInit();
