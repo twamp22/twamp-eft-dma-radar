@@ -197,7 +197,7 @@ namespace eft_dma_shared.Common.Misc.Data.TarkovMarket
                 """
                 }
             };
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             using var response = await SharedProgram.HttpClient.PostAsJsonAsync(
                 requestUri: "https://api.tarkov.dev/graphql", 
                 value: query,
