@@ -18,7 +18,7 @@ The compiled version will be available **After March 21st**. The current downloa
 - Arena is supported and will be maintained going forward.
 
 ## Donations
-- If you would like to donate, any contribution is appreciated! <3
+- If you would like to donate, any contribution is appreciated! ❤️
   - Bitcoin: `bc1q7l4w7n3mt0rawztj0xl4me7mrnhjdr0hgjh2xp`
   - Litecoin: `ltc1qlllsgdzq3dt2w2zchf7sxmy0t75sn4x6ethhez`
   - Dogecoin: `DDiva1gAP1b9bi2cWfmZvDsQTQesxJAALw`
