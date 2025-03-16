@@ -1,4 +1,5 @@
 ﻿using eft_dma_shared.Common.Misc.Data.TarkovMarket;
+using eft_dma_shared.Common.UI;
 using System.Collections.Frozen;
 using System.Reflection;
 using System.Text;
@@ -32,11 +33,11 @@ namespace eft_dma_shared.Common.Misc.Data
         /// <summary>
         /// Call to start LoneDataManager Module. ONLY CALL ONCE.
         /// </summary>
-        public static async Task ModuleInitAsync()
+        public static async Task ModuleInitAsync(LoadingForm loading, bool defaultOnly = false)
         {
             try
             {
-                var data = await GetDataAsync();
+                var data = await GetDataAsync(loading, defaultOnly);
                 AllItems = data.Items.Where(x => !x.Tags?.Contains("Static Container") ?? false)
                     .DistinctBy(x => x.BsgId, StringComparer.OrdinalIgnoreCase)
                     .ToDictionary(k => k.BsgId, v => v, StringComparer.OrdinalIgnoreCase)
@@ -64,13 +65,15 @@ namespace eft_dma_shared.Common.Misc.Data
         /// Loads Market data via several possible methods (cached,web,embedded resource).
         /// </summary>
         /// <returns>Collection of TarkovMarketItems.</returns>
-        private static async Task<TarkovMarketData> GetDataAsync()
+        private static async Task<TarkovMarketData> GetDataAsync(LoadingForm loading, bool defaultOnly)
         {
             TarkovMarketData data;
             string json = null;
-            if (!File.Exists(_dataFile) ||
-            File.GetLastWriteTime(_dataFile).AddHours(4) < DateTime.Now) // only update every 4h
+            if (!defaultOnly &&
+                (!File.Exists(_dataFile) ||
+            File.GetLastWriteTime(_dataFile).AddHours(4) < DateTime.Now)) // only update every 4h
             {
+                loading.UpdateStatus("Getting Updated Market Data...", loading.PercentComplete);
                 json = await GetUpdatedDataJsonAsync();
                 if (json is not null)
                 {
