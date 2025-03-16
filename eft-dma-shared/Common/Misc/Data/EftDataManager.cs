@@ -121,7 +121,6 @@ namespace eft_dma_shared.Common.Misc.Data
         /// Contacts the Loot Server for an updated Loot List.
         /// </summary>
         /// <returns>Json string of Loot List.</returns>
-        [Obfuscation(Feature = "Virtualization", Exclude = false)]
         private static async Task<string> GetUpdatedDataJsonAsync()
         {
             try

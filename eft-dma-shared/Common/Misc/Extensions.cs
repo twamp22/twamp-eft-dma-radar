@@ -463,7 +463,6 @@ namespace eft_dma_shared.Common.Misc
         /// </summary>
         /// <param name="num">Integer to obfuscate</param>
         /// <returns>Obfuscated integer</returns>
-        [Obfuscation(Feature = "Virtualization", Exclude = false)]
         public static ulong Obfuscate(this ulong num)
         {
             const ulong mask1 = 0x4D181AE4A6AC37FE;
@@ -482,7 +481,6 @@ namespace eft_dma_shared.Common.Misc
         /// </summary>
         /// <param name="num">Obfuscated integer.</param>
         /// <returns>Deobfuscated integer.</returns>
-        [Obfuscation(Feature = "Virtualization", Exclude = false)]
         public static ulong Deobfuscate(this ulong num)
         {
             const ulong mask1 = 0x4D181AE4A6AC37FE;
@@ -500,7 +498,6 @@ namespace eft_dma_shared.Common.Misc
         /// </summary>
         /// <param name="num">Integer to obfuscate</param>
         /// <returns>Obfuscated integer</returns>
-        [Obfuscation(Feature = "Virtualization", Exclude = false)]
         public static int Obfuscate(this int num)
         {
             const int mask1 = 982189426;
@@ -516,7 +513,6 @@ namespace eft_dma_shared.Common.Misc
         /// </summary>
         /// <param name="num">Obfuscated integer.</param>
         /// <returns>Deobfuscated integer.</returns>
-        [Obfuscation(Feature = "Virtualization", Exclude = false)]
         public static int Deobfuscate(this int num)
         {
             const int mask1 = 982189426;

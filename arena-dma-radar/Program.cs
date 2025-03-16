@@ -63,7 +63,6 @@ namespace arena_dma_radar
         /// <summary>
         ///  The main entry point for the application.
         /// </summary>
-        [Obfuscation(Feature = "Virtualization", Exclude = false)]
         [STAThread]
         static void Main(string[] args)
         {
@@ -127,7 +126,6 @@ namespace arena_dma_radar
         /// Configure Program Startup.
         /// </summary>
         /// <param name="args">Args passed from entrypoint.</param>
-        [Obfuscation(Feature = "Virtualization", Exclude = false)]
         private static void ConfigureProgram()
         {
             ApplicationConfiguration.Initialize();
