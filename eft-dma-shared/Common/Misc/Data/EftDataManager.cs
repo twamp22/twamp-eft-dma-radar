@@ -77,7 +77,7 @@ namespace eft_dma_shared.Common.Misc.Data
                 (!File.Exists(_dataFile) ||
             File.GetLastWriteTime(_dataFile).AddHours(4) < DateTime.Now)) // only update every 4h
             {
-                loading.UpdateStatus("Getting Updated Market Data...", loading.PercentComplete);
+                loading.UpdateStatus("Getting Updated Tarkov.Dev Data...", loading.PercentComplete);
                 json = await GetUpdatedDataJsonAsync();
                 if (json is not null)
                 {
