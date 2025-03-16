@@ -132,24 +132,16 @@ namespace arena_dma_radar
         {
             ApplicationConfiguration.Initialize();
             using var loading = LoadingForm.Create();
-            try
-            {
-                loading.UpdateStatus("Loading Tarkov.Dev Data...", 15);
-                EftDataManager.ModuleInitAsync(loading, true).GetAwaiter().GetResult();
-                loading.UpdateStatus("Loading Map Assets...", 35);
-                LoneMapManager.ModuleInit();
-                loading.UpdateStatus("Starting DMA Connection...", 50);
-                MemoryInterface.ModuleInit();
-                loading.UpdateStatus("Loading Remaining Modules...", 75);
-                FeatureManager.ModuleInit();
-                ResourceJanitor.ModuleInit(new Action(CleanupWindowResources));
-                loading.UpdateStatus("Loading Completed!", 100);
-            }
-            catch
-            {
-                loading.UpdateStatus("ERROR", 0);
-                throw;
-            }
+            loading.UpdateStatus("Loading Tarkov.Dev Data...", 15);
+            EftDataManager.ModuleInitAsync(loading, true).GetAwaiter().GetResult();
+            loading.UpdateStatus("Loading Map Assets...", 35);
+            LoneMapManager.ModuleInit();
+            loading.UpdateStatus("Starting DMA Connection...", 50);
+            MemoryInterface.ModuleInit();
+            loading.UpdateStatus("Loading Remaining Modules...", 75);
+            FeatureManager.ModuleInit();
+            ResourceJanitor.ModuleInit(new Action(CleanupWindowResources));
+            loading.UpdateStatus("Loading Completed!", 100);
         }
 
         private static void CleanupWindowResources()

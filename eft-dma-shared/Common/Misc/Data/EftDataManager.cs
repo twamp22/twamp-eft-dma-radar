@@ -33,6 +33,10 @@ namespace eft_dma_shared.Common.Misc.Data
         /// <summary>
         /// Call to start LoneDataManager Module. ONLY CALL ONCE.
         /// </summary>
+        /// <param name="loading">Loading UI Form.</param>
+        /// <param name="defaultOnly">True if you want to load cached/default data only.</param>
+        /// <returns></returns>
+        /// <exception cref="ApplicationException"></exception>
         public static async Task ModuleInitAsync(LoadingForm loading, bool defaultOnly = false)
         {
             try
