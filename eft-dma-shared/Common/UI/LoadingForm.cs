@@ -11,6 +11,7 @@ namespace eft_dma_shared.Common.UI
         {
             InitializeComponent();
             zzzCenter();
+            this.CenterToScreen();
         }
 
         public void UpdateStatus(string text, int percentComplete)
@@ -28,7 +29,6 @@ namespace eft_dma_shared.Common.UI
         {
             flowLayoutPanel_Progress.Left = (this.ClientSize.Width - flowLayoutPanel_Progress.Width) / 2;
             flowLayoutPanel_Progress.Top = (this.ClientSize.Height - flowLayoutPanel_Progress.Height) / 2;
-            this.CenterToScreen();
         }
 
         public static LoadingForm Create()
