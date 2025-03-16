@@ -165,13 +165,13 @@ namespace eft_dma_shared.Common.Unity.LowLevel
                 ulong codeCave = NativeHook.CodeCave;
                 if (!codeCave.IsValidVirtualAddress())
                     return false;
-                if (Cache.CodeCave.Deobfuscate() == codeCave && !Cache.ChamsMaterialIds.IsEmpty)
+                if (Cache.CodeCave == codeCave && !Cache.ChamsMaterialIds.IsEmpty)
                 {
                     foreach (var kvp in Cache.ChamsMaterialIds)
                     {
                         _materials[(ChamsMode)kvp.Key] = new()
                         {
-                            InstanceID = kvp.Value.Deobfuscate()
+                            InstanceID = kvp.Value
                         };
                     }
                     LoneLogging.WriteLine("[CHAMS MANAGER] TryInitializeFromCache() -> OK");
@@ -188,7 +188,7 @@ namespace eft_dma_shared.Common.Unity.LowLevel
         {
             foreach (var kvp in _materials)
             {
-                Cache.ChamsMaterialIds[(int)kvp.Key] = kvp.Value.InstanceID.Obfuscate();
+                Cache.ChamsMaterialIds[(int)kvp.Key] = kvp.Value.InstanceID;
             }
             _ = Cache.SaveAsync();
         }
