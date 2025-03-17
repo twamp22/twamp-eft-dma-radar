@@ -743,7 +743,7 @@ namespace eft_dma_radar.UI.Misc
         public WideLeanConfig WideLean { get; set; } = new();
 
         /// <summary>
-        /// 1.2x Move Speed is Enabled.
+        /// 1.4x Move Speed is Enabled.
         /// </summary>
         [JsonPropertyName("moveSpeed2")]
         public bool MoveSpeed { get; set; } = false;

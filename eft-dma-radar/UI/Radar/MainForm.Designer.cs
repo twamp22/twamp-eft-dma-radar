@@ -1320,7 +1320,7 @@ namespace eft_dma_radar.UI.Radar
             checkBox_MoveSpeed.Name = "checkBox_MoveSpeed";
             checkBox_MoveSpeed.Size = new Size(152, 19);
             checkBox_MoveSpeed.TabIndex = 68;
-            checkBox_MoveSpeed.Text = "1.2x Move Speed (Risky)";
+            checkBox_MoveSpeed.Text = "1.4x Move Speed (Risky)";
             checkBox_MoveSpeed.UseVisualStyleBackColor = true;
             checkBox_MoveSpeed.CheckedChanged += checkBox_MoveSpeed_CheckedChanged;
             // 

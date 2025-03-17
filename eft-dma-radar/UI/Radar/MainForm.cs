@@ -1731,10 +1731,10 @@ namespace eft_dma_radar.UI.Radar
                 "Enables the Infinite Stamina feature. Prevents you from running out of stamina/breath, and bypasses the Fatigue debuff. Due to safety reasons you can only disable this after the raid has ended.\n" +
                 "NOTE: Your footsteps will be silent, this is normal.\n" +
                 "NOTE: You will not gain endurance/strength xp with this on.\n" +
-                "NOTE: At higher weights you may get server desync. You can try disabling 1.2 Move Speed, or reducing your weight. MULE stims help here too.\n" +
+                "NOTE: At higher weights you may get server desync. You can try disabling 1.4 Move Speed, or reducing your weight. MULE stims help here too.\n" +
                 "WARNING: This is marked as a RISKY feature since other players can see you 'gliding' instead of running and is visually noticeable.");
             toolTip1.SetToolTip(checkBox_MoveSpeed,
-                "Enables/Disables 1.2x Move Speed Feature. This causes your player to move 1.2 times faster.\n" +
+                "Enables/Disables 1.4x Move Speed Feature. This causes your player to move 1.4 times faster.\n" +
                 "NOTE: When used in conjunction with Infinite Stamina this can contribute to Server Desync at higher carry weights. Turn this off to reduce desync.\n" +
                 "WARNING: This is marked as a RISKY feature since other players can see you moving faster than normal.");
             toolTip1.SetToolTip(checkBox_ESP_FireportAim, "Shows the base fireport trajectory on screen so you can see where bullets will go. Disappears when ADS.");
