@@ -441,8 +441,6 @@ namespace eft_dma_radar.UI.Radar
         {
             const string notRunning = "Game Process Not Running!";
             float textWidth = SKPaints.TextRadarStatus.MeasureText(notRunning);
-            canvas.DrawText(notRunning, (skglControl_Radar.Width / 2) - textWidth / 2f, skglControl_Radar.Height / 2,
-                SKPaints.TextRadarStatus);
             IncrementStatus();
         }
         private void StartingUpStatus(SKCanvas canvas)
@@ -467,8 +465,6 @@ namespace eft_dma_radar.UI.Radar
                 waitingFor1 : _statusOrder == 2 ?
                 waitingFor2 : waitingFor3;
             float textWidth = SKPaints.TextRadarStatus.MeasureText(waitingFor1);
-            canvas.DrawText(status, (skglControl_Radar.Width / 2) - textWidth / 2f, skglControl_Radar.Height / 2,
-                SKPaints.TextRadarStatus);
             IncrementStatus();
         }
 
@@ -1971,7 +1967,7 @@ namespace eft_dma_radar.UI.Radar
                     top + labelHeight + spacing);
                 canvas.DrawRect(bgRect, SKPaints.PaintTransparentBacker);
                 var textLoc = new SKPoint(clientArea.Width / 2, top + labelHeight);
-                canvas.DrawText(label, textLoc, SKPaints.TextStatusSmall);
+                //canvas.DrawText(label, textLoc, SKPaints.TextStatusSmall);
             }
             catch (Exception ex)
             {
