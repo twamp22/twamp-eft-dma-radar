@@ -35,20 +35,20 @@ namespace eft_dma_radar.Tarkov.Features.MemoryWrites
                     var dir = Direction;
                     if (Enabled && dir is not EWideLeanDirection.Off && !_set)
                     {
-                        float amt = Config.Amount * .01f * 0.2f;
+                        float m100 = 50f;
                         switch (dir)
                         {
                             case EWideLeanDirection.Left:
-                                var left = new Vector3(-amt, 0f, 0f);
-                                writes.AddValueEntry(localPlayer.PWA + Offsets.ProceduralWeaponAnimation.PositionZeroSum, ref left);
+                                var up1 = new Vector3(0f, 0f, m100/2);
+                                writes.AddValueEntry(localPlayer.PWA + Offsets.ProceduralWeaponAnimation.PositionZeroSum, ref up1);
                                 break;
                             case EWideLeanDirection.Right:
-                                var right = new Vector3(amt, 0f, 0f);
-                                writes.AddValueEntry(localPlayer.PWA + Offsets.ProceduralWeaponAnimation.PositionZeroSum, ref right);
+                                var up2 = new Vector3(0f, 0f, m100);
+                                writes.AddValueEntry(localPlayer.PWA + Offsets.ProceduralWeaponAnimation.PositionZeroSum, ref up2);
                                 break;
                             case EWideLeanDirection.Up:
-                                var up = new Vector3(0f, 0f, amt);
-                                writes.AddValueEntry(localPlayer.PWA + Offsets.ProceduralWeaponAnimation.PositionZeroSum, ref up);
+                                var up3 = new Vector3(0f, 0f, m100*2);
+                                writes.AddValueEntry(localPlayer.PWA + Offsets.ProceduralWeaponAnimation.PositionZeroSum, ref up3);
                                 break;
                             default:
                                 throw new InvalidOperationException("Invalid wide lean option");
