@@ -68,7 +68,7 @@ namespace eft_dma_radar.Tarkov.Features.MemoryWrites
                         var hc = localPlayer.Firearm?.HandsController;
                         if (hc?.Item2 is bool firearm && firearm && hc.Item1 is ulong firearmController)
                         {
-                            float fovCompensatoryDist = Config.ZoomAmount * .01f;
+                            float fovCompensatoryDist = Config.ZoomAmount * .1f;
                             if (zoomEngaged && (!_engaged || fovCompensatoryDist != _fovCompensatoryDist || firearmController != _firearmController))
                             {
                                 writes.AddValueEntry(firearmController + Offsets.ClientFirearmController.WeaponLn, weaponLn);
