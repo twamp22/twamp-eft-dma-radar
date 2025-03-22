@@ -20,6 +20,7 @@ namespace eft_dma_radar.UI.Misc
     public sealed class Config : IConfig
     {
         #region ISharedConfig
+        public static Config Instance { get; set; }
 
         [JsonIgnore]
         public bool MemWritesEnabled => this.MemWrites.MemWritesEnabled;
@@ -158,7 +159,7 @@ namespace eft_dma_radar.UI.Misc
         /// </summary>
         [JsonPropertyName("lootPPS")]
         public bool LootPPS { get; set; }
-        
+
         /// <summary>
         /// Loot Price Mode.
         /// </summary>
@@ -464,6 +465,18 @@ namespace eft_dma_radar.UI.Misc
         /// </summary>
         [JsonPropertyName("showFPS")]
         public bool ShowFPS { get; set; } = false;
+
+        /// <summary>
+        /// Show Clickthrough
+        /// </summary>
+        [JsonPropertyName("espClickThrough")]
+        public bool ClickThrough { get; set; } = false;
+
+        /// <summary>
+        /// Show Always On Top.
+        /// </summary>
+        [JsonPropertyName("espAlwaysOnTop")]
+        public bool AlwaysOnTop { get; set; } = false;
 
         /// <summary>
         /// Display exfils in ESP.

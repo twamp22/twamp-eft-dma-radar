@@ -1671,8 +1671,8 @@ namespace eft_dma_radar.UI.Radar
                 "The resolution Height of your Game PC Monitor that Tarkov runs on. This must be correctly set for Aimview/Aimbot/ESP to function properly.");
             toolTip1.SetToolTip(button_DetectRes,
                 "Automatically detects the resolution of your Game PC Monitor that Tarkov runs on, and sets the Width/Height fields. Game must be running.");
-            toolTip1.SetToolTip(button_StartESP,
-                "Starts the ESP Window. This will render ESP over a black background. Move this window to the screen that is being fused, and double click to go Fullscreen.");
+            toolTip1.SetToolTip(button_ToggleESP,
+                "Toggles the ESP Window. By default this will render ESP to a window with a black background. Move this window to the screen that is being fused, and double click to go Fullscreen.");
             toolTip1.SetToolTip(label_ESPFPSCap,
                 "Sets an FPS Cap for the ESP Window. Generally this can be the refresh rate of your Game PC Monitor. This also helps reduce resource usage on your Radar PC.\nSetting this to 0 disables it entirely.");
             toolTip1.SetToolTip(button_EspColorPicker,
@@ -2635,6 +2635,8 @@ namespace eft_dma_radar.UI.Radar
             checkBox_ESP_RaidStats.Checked = Config.ESP.ShowRaidStats;
             checkBox_ESP_StatusText.Checked = Config.ESP.ShowStatusText;
             checkBox_ESP_FPS.Checked = Config.ESP.ShowFPS;
+            checkBox_ESP_ClickThrough.Checked = Config.ESP.ClickThrough;
+            checkBox_ESP_AlwaysOnTop.Checked = Config.ESP.AlwaysOnTop;
             trackBar_EspLootDist.Value = (int)Config.ESP.LootDrawDistance;
             trackBar_EspImpLootDist.Value = (int)Config.ESP.ImpLootDrawDistance;
             trackBar_EspQuestHelperDist.Value = (int)Config.ESP.QuestHelperDrawDistance;
@@ -2668,7 +2670,13 @@ namespace eft_dma_radar.UI.Radar
 
             comboBox_ESPAutoFS.SelectedIndex = Config.ESP.SelectedScreen;
             if (checkBox_ESP_AutoFS.Checked)
-                StartESP();
+                ToggleESP();
+            if (checkBox_ESP_AlwaysOnTop.Checked)
+                ApplyESPAlwaysOnTop();
+            if (checkBox_ESP_ClickThrough.Checked)
+                ApplyESPClickThrough();
+
+
         }
 
         private void TrackBar_ESPContainerDist_ValueChanged(object sender, EventArgs e)
@@ -2691,43 +2699,76 @@ namespace eft_dma_radar.UI.Radar
                 Config.ESP.SelectedScreen = entry.ScreenNumber;
         }
 
-        private void button_StartESP_Click(object sender, EventArgs e) =>
-            StartESP();
+        private void button_ToggleESP_Click(object sender, EventArgs e) =>
+            ToggleESP();
 
-        private void StartESP()
+        private Thread espThread;
+
+        private void ToggleESP()
         {
-            button_StartESP.Text = "Running...";
-            flowLayoutPanel_ESPSettings.Enabled = false;
-            flowLayoutPanel_MonitorSettings.Enabled = false;
-            var t = new Thread(() =>
+            if (EspForm.Window == null || EspForm.Window.IsDisposed)
             {
-                try
+                // Start ESP
+                espThread = new Thread(() =>
                 {
-                    EspForm.ShowESP = true;
-                    Application.Run(new EspForm());
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("ESP Critical Runtime Error! " + ex, Program.Name, MessageBoxButtons.OK,
-                        MessageBoxIcon.Error);
-                }
-                finally
-                {
-                    Invoke(() =>
+                    try
                     {
-                        button_StartESP.Text = "Start ESP";
-                        flowLayoutPanel_ESPSettings.Enabled = true;
-                        flowLayoutPanel_MonitorSettings.Enabled = true;
-                    });
-                }
-            })
+                        EspForm.ShowESP = true;
+                        Application.Run(new EspForm());
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("ESP Critical Runtime Error! " + ex, Program.Name, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                    finally
+                    {
+                        this.Invoke(() =>
+                        {
+                            button_ToggleESP.Text = "Start ESP";
+                        });
+                    }
+                })
+                {
+                    IsBackground = true,
+                    Priority = ThreadPriority.AboveNormal
+                };
+                espThread.SetApartmentState(ApartmentState.STA);
+                espThread.Start();
+                button_ToggleESP.Text = "Stop ESP";
+            }
+            else
             {
-                IsBackground = true,
-                Priority = ThreadPriority.AboveNormal
-            };
-            t.SetApartmentState(ApartmentState.STA);
-            t.Start();
-            tabControl1.SelectedIndex = 0; // Switch back to Radar
+                // Stop ESP
+                this.Invoke(() =>
+                {
+                    if (EspForm.Window != null && !EspForm.Window.IsDisposed)
+                    {
+                        EspForm.Window.Invoke(() => EspForm.Window.Close());
+                    }
+                    button_ToggleESP.Text = "Start ESP";
+                });
+            }
+        }
+
+        private void ApplyESPAlwaysOnTop()
+        {
+            if (EspForm.Window != null)
+            {
+                EspForm.Window.Invoke(() =>
+                {
+                    EspForm.Window.TopMost = checkBox_ESP_AlwaysOnTop.Checked;
+                });
+            }
+        }
+        private void ApplyESPClickThrough()
+        {
+            if (EspForm.Window != null)
+            {
+                EspForm.Window.Invoke(() =>
+                {
+                    EspForm.Window.SetClickThrough(checkBox_ESP_ClickThrough.Checked);
+                });
+            }
         }
 
         private void textBox_EspFpsCap_TextChanged(object sender, EventArgs e)
@@ -2795,6 +2836,35 @@ namespace eft_dma_radar.UI.Radar
         private void checkBox_ESP_FPS_CheckedChanged(object sender, EventArgs e)
         {
             Config.ESP.ShowFPS = checkBox_ESP_FPS.Checked;
+        }
+
+        private void checkBox_ESP_ClickThrough_CheckedChanged(object sender, EventArgs e)
+        {
+            Config.ESP.ClickThrough = checkBox_ESP_ClickThrough.Checked;
+
+            // Ensure we’re on the UI thread before updating clickthrough state
+            if (EspForm.Window != null)
+            {
+                if (EspForm.Window.InvokeRequired)
+                {
+                    EspForm.Window.Invoke(() =>
+                    {
+                        EspForm.Window.SetClickThrough(Config.ESP.ClickThrough);
+                        EspForm.Window.ApplyChromaKey(0x000000); // reapply chroma key from public instance method
+                    });
+                }
+                else
+                {
+                    EspForm.Window.SetClickThrough(Config.ESP.ClickThrough);
+                    EspForm.Window.ApplyChromaKey(0x000000);
+                }
+            }
+        }
+
+        private void checkBox_ESP_AlwaysOnTop_CheckedChanged(object sender, EventArgs e)
+        {
+            Config.ESP.AlwaysOnTop = checkBox_ESP_AlwaysOnTop.Checked;
+            ApplyESPAlwaysOnTop();
         }
 
         private void checkBox_ESP_AimFov_CheckedChanged(object sender, EventArgs e)
