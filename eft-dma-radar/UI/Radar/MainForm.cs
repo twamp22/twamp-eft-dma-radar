@@ -2744,6 +2744,7 @@ namespace eft_dma_radar.UI.Radar
                     if (EspForm.Window != null && !EspForm.Window.IsDisposed)
                     {
                         EspForm.Window.Invoke(() => EspForm.Window.Close());
+                        //EspForm.Window.Dispose();
                     }
                     button_ToggleESP.Text = "Start ESP";
                 });
@@ -2756,7 +2757,7 @@ namespace eft_dma_radar.UI.Radar
             {
                 EspForm.Window.Invoke(() =>
                 {
-                    EspForm.Window.TopMost = checkBox_ESP_AlwaysOnTop.Checked;
+                    EspForm.Window.TopMost = Config.ESP.AlwaysOnTop;
                 });
             }
         }
@@ -2842,21 +2843,24 @@ namespace eft_dma_radar.UI.Radar
         {
             Config.ESP.ClickThrough = checkBox_ESP_ClickThrough.Checked;
 
-            // Ensure we’re on the UI thread before updating clickthrough state
             if (EspForm.Window != null)
             {
-                if (EspForm.Window.InvokeRequired)
+                // Using Invoke to update the clickthrough state from the UI thread
+                if (Config.ESP.ClickThrough)
                 {
                     EspForm.Window.Invoke(() =>
                     {
-                        EspForm.Window.SetClickThrough(Config.ESP.ClickThrough);
-                        EspForm.Window.ApplyChromaKey(0x000000); // reapply chroma key from public instance method
+                        EspForm.Window.SetClickThrough(true);
+                        EspForm.Window.ApplyChromaKey(0x000000);
                     });
                 }
                 else
                 {
-                    EspForm.Window.SetClickThrough(Config.ESP.ClickThrough);
-                    EspForm.Window.ApplyChromaKey(0x000000);
+                    EspForm.Window.Invoke(() =>
+                    {
+                        EspForm.Window.SetClickThrough(false);
+                        //EspForm.Window.RemoveChromaKey();
+                    });
                 }
             }
         }

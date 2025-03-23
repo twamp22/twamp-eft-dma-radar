@@ -90,7 +90,7 @@ namespace eft_dma_radar.UI.ESP
 
         public EspForm()
         {
-            Window = this;
+            EspForm.Window = this;
             InitializeComponent();
             CenterToScreen();
             skglControl_ESP.DoubleClick += ESP_DoubleClick;
@@ -112,14 +112,9 @@ namespace eft_dma_radar.UI.ESP
             this.Shown += EspForm_Shown;
         }
 
+
         public void SetClickThrough(bool enable)
         {
-            if (this.InvokeRequired)
-            {
-                this.Invoke(new Action(() => SetClickThrough(enable)));
-                return;
-            }
-
             if (enable)
             {
                 ESPClickThroughHelper.ApplyClickThrough(this);
@@ -135,94 +130,102 @@ namespace eft_dma_radar.UI.ESP
             if (this.InvokeRequired)
             {
                 this.Invoke(new Action(() =>
-                {
-                    ESPClickThroughHelper.EnsureLayered(this);
+                {         
                     ESPClickThroughHelper.ApplyChromaKey(this, chromaKeyColor);
-                    this.TopMost = Program.Config.ESP.AlwaysOnTop;
                 }));
             }
             else
             {
-                ESPClickThroughHelper.EnsureLayered(this);
                 ESPClickThroughHelper.ApplyChromaKey(this, chromaKeyColor);
-                this.TopMost = Program.Config.ESP.AlwaysOnTop;
             }
         }
+        
+        //public void RemoveChromaKey()
+        //{
+        //    if (this.InvokeRequired)
+        //    {
+        //        this.Invoke(new Action(() =>
+        //        {
+        //            ESPClickThroughHelper.RemoveClickThrough(this);
+        //        }));
+        //    }
+        //    else
+        //    {
+        //        ESPClickThroughHelper.RemoveClickThrough(this);
+        //    }
+        //}
 
         private static class ESPClickThroughHelper
         {
-            private const int GWL_EX_STYLE = -20;
-            private const int WS_EX_LAYERED = 0x80000;
-            private const int WS_EX_TRANSPARENT = 0x20;
+            private const int GWL_EXSTYLE = -20;
+            private const long WS_EX_LAYERED = 0x80000;
+            private const long WS_EX_TRANSPARENT = 0x20;
             private const int LWA_COLORKEY = 0x1;
 
             [DllImport("user32.dll")]
-            public static extern uint GetWindowLong(IntPtr hWnd, int nIndex);
+            public static extern long GetWindowLong(IntPtr hWnd, int nIndex);
 
             [DllImport("user32.dll")]
-            public static extern uint SetWindowLong(IntPtr hWnd, int nIndex, uint dwNewLong);
+            public static extern long SetWindowLong(IntPtr hWnd, int nIndex, long dwNewLong);
 
             [DllImport("user32.dll")]
             private static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint crKey, byte bAlpha, uint dwFlags);
 
             public static void ApplyClickThrough(Form targetForm)
             {
-                EnsureLayered(targetForm);
                 IntPtr hwnd = targetForm.Handle;
-                uint exStyle = GetWindowLong(hwnd, GWL_EX_STYLE);
-                SetWindowLong(hwnd, GWL_EX_STYLE, exStyle | WS_EX_LAYERED | WS_EX_TRANSPARENT);
+                long exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+
+                SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED | WS_EX_TRANSPARENT);
+
+                //EnsureLayered(targetForm);
+                //EnsureTransparent(targetForm);
                 Debug.WriteLine($"Click-through applied to ESP window (Handle: {hwnd}).");
             }
 
+            public static void RemoveClickThrough(Form targetForm)
+            {
+                IntPtr hwnd = targetForm.Handle;
+                long exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+                SetWindowLong(hwnd, GWL_EXSTYLE, exStyle & ~(WS_EX_LAYERED | WS_EX_TRANSPARENT));
+                Debug.WriteLine($"Click-through removed from ESP window (Handle: {hwnd}).");
+            }
             public static void ApplyChromaKey(Form targetForm, uint chromaKeyColor = 0x000000)
             {
                 IntPtr hwnd = targetForm.Handle;
                 SetLayeredWindowAttributes(hwnd, chromaKeyColor, 0, LWA_COLORKEY);
                 Debug.WriteLine($"Chroma key applied (Handle: {hwnd}).");
             }
-
-            public static void RemoveClickThrough(Form targetForm)
-            {
-                IntPtr hwnd = targetForm.Handle;
-                uint exStyle = GetWindowLong(hwnd, GWL_EX_STYLE);
-                SetWindowLong(hwnd, GWL_EX_STYLE, (uint)(exStyle & ~WS_EX_TRANSPARENT));
-                SetWindowPos(hwnd, IntPtr.Zero, 0, 0, 0, 0, SetWindowPosFlags.SWP_NOMOVE | SetWindowPosFlags.SWP_NOSIZE | SetWindowPosFlags.SWP_NOZORDER | SetWindowPosFlags.SWP_FRAMECHANGED);
-                ApplyChromaKey(targetForm, 0x000000);
-                Debug.WriteLine($"Click-through removed from ESP window (Handle: {hwnd}).");
-            }
-
             public static void EnsureLayered(Form targetForm)
             {
                 // Retrieves the window handle of the target form.
                 IntPtr hwnd = targetForm.Handle;
 
                 // Gets the extended window style (exStyle) of the window.
-                uint exStyle = GetWindowLong(hwnd, GWL_EX_STYLE);
+                long exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
 
                 // Log the current flags for debugging.
                 Debug.WriteLine($"ESP window current exStyle: 0x{exStyle:X8} (Handle: {hwnd})");
 
-                // Check and preserve existing flags before setting WS_EX_LAYERED.
-                if ((exStyle & WS_EX_LAYERED) == 0)
-                {
-                    SetWindowLong(hwnd, GWL_EX_STYLE, exStyle | WS_EX_LAYERED);
-                    Debug.WriteLine($"Applied WS_EX_LAYERED to ESP window (Handle: {hwnd}).");
-                }
-
-                // Log whether WS_EX_TRANSPARENT is present.
-                if ((exStyle & WS_EX_TRANSPARENT) != 0)
-                {
-                    Debug.WriteLine($"ESP window has WS_EX_TRANSPARENT set (Handle: {hwnd}).");
-                }
-                else
-                {
-                    Debug.WriteLine($"ESP window does NOT have WS_EX_TRANSPARENT set (Handle: {hwnd}).");
-                }
-
-                // Re-apply chroma key each time we ensure layering.
-                ApplyChromaKey(targetForm);
+                SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED);
+                Debug.WriteLine($"Applied WS_EX_LAYERED to ESP window (Handle: {hwnd}).");
             }
 
+            public static void EnsureTransparent(Form targetForm)
+            {
+                // Retrieves the window handle of the target form.
+                IntPtr hwnd = targetForm.Handle;
+
+                // Gets the extended window style (exStyle) of the window.
+                long exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+
+                // Log the current flags for debugging.
+                Debug.WriteLine($"ESP window current exStyle: 0x{exStyle:X8} (Handle: {hwnd})");
+
+                SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT);
+                Debug.WriteLine($"Applied WS_EX_TRANSPARENT to ESP window (Handle: {hwnd}).");
+            }
+            
             [DllImport("user32.dll")]
             private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, SetWindowPosFlags uFlags);
 
@@ -242,16 +245,14 @@ namespace eft_dma_radar.UI.ESP
                 await Task.Delay(25);
             Window ??= this;
 
-            // Ensure the window is layered and apply chroma key BEFORE showing/skgl setup
-            ESPClickThroughHelper.EnsureLayered(this);
-            ESPClickThroughHelper.ApplyChromaKey(this, 0x000000);
-
-            // Now handle click-through if enabled
-            if (Program.Config.ESP.ClickThrough)
-                ESPClickThroughHelper.ApplyClickThrough(this);
-
             // Handle always on top after chroma and clickthrough
             this.TopMost = Program.Config.ESP.AlwaysOnTop;
+
+            if (Program.Config.ESP.ClickThrough)
+            {
+                this.SetClickThrough(Config.ESP.ClickThrough);
+                this.ApplyChromaKey(0x000000);
+            }
 
             // Start rendering loop *after* window state is correct
             CameraManagerBase.EspRunning = true;
@@ -276,14 +277,24 @@ namespace eft_dma_radar.UI.ESP
             var width = canvas.DeviceClipBounds.Width;
             var height = canvas.DeviceClipBounds.Height;
 
-            for (int i = 0; i < 10; i++)
-            {
-                canvas.DrawCircle(
-                    new SKPoint(random.Next(0, width), random.Next(0, height)),
-                    random.Next(10, 100),
-                    SKPaints.PaintBasicESP
-                );
-            }
+            canvas.DrawCircle(new SKPoint(100, 100), 100, SKPaints.PaintBasicESP);
+            canvas.DrawCircle(new SKPoint(200, 200), 100, SKPaints.PaintBasicESP);
+            canvas.DrawCircle(new SKPoint(300, 300), 100, SKPaints.PaintBasicESP);
+            canvas.DrawCircle(new SKPoint(400, 400), 100, SKPaints.PaintBasicESP);
+            canvas.DrawCircle(new SKPoint(500, 500), 100, SKPaints.PaintBasicESP);
+            canvas.DrawCircle(new SKPoint(600, 600), 100, SKPaints.PaintBasicESP);
+            canvas.DrawCircle(new SKPoint(700, 700), 100, SKPaints.PaintBasicESP);
+            canvas.DrawCircle(new SKPoint(800, 800), 100, SKPaints.PaintBasicESP);
+            canvas.DrawCircle(new SKPoint(900, 900), 100, SKPaints.PaintBasicESP);
+
+            //for (int i = 0; i < 10; i++)
+            //{
+            //    canvas.DrawCircle(
+            //        new SKPoint(random.Next(0, width), random.Next(0, height)),
+            //        random.Next(10, 100),
+            //        SKPaints.PaintBasicESP
+            //    );
+            //}
         }
         #endregion
 
