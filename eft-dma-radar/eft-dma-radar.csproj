@@ -16,12 +16,13 @@
 	<ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
 	<RetainVMGarbageCollection>true</RetainVMGarbageCollection>
 	<Deterministic>false</Deterministic>
+	<BaseOutputPath>\\FOB-X64\twamp-eft-dma-radar-ESP-Overhaul</BaseOutputPath>
   </PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-		<DebugType>none</DebugType>
+		<DebugType>full</DebugType>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-		<DebugType>none</DebugType>
+		<DebugType>full</DebugType>
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(Configuration)' != 'Commercial'">
