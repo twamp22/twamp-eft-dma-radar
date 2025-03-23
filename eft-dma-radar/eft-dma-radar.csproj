@@ -16,7 +16,6 @@
 	<ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
 	<RetainVMGarbageCollection>true</RetainVMGarbageCollection>
 	<Deterministic>false</Deterministic>
-	<BaseOutputPath>\\FOB-X64\twamp-eft-dma-radar-ESP-Overhaul</BaseOutputPath>
   </PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
 		<DebugType>full</DebugType>
