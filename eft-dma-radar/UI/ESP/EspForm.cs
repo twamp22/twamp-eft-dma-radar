@@ -25,7 +25,7 @@ namespace eft_dma_radar.UI.ESP
         private readonly PrecisionTimer _renderTimer;
         private int _fpsCounter;
         private int _fps;
-        public static bool drawDemoCrap = true;
+        public static bool drawDemoCrap = false;
 
         /// <summary>
         /// Singleton Instance of EspForm.
@@ -277,24 +277,14 @@ namespace eft_dma_radar.UI.ESP
             var width = canvas.DeviceClipBounds.Width;
             var height = canvas.DeviceClipBounds.Height;
 
-            canvas.DrawCircle(new SKPoint(100, 100), 100, SKPaints.PaintBasicESP);
-            canvas.DrawCircle(new SKPoint(200, 200), 100, SKPaints.PaintBasicESP);
-            canvas.DrawCircle(new SKPoint(300, 300), 100, SKPaints.PaintBasicESP);
-            canvas.DrawCircle(new SKPoint(400, 400), 100, SKPaints.PaintBasicESP);
-            canvas.DrawCircle(new SKPoint(500, 500), 100, SKPaints.PaintBasicESP);
-            canvas.DrawCircle(new SKPoint(600, 600), 100, SKPaints.PaintBasicESP);
-            canvas.DrawCircle(new SKPoint(700, 700), 100, SKPaints.PaintBasicESP);
-            canvas.DrawCircle(new SKPoint(800, 800), 100, SKPaints.PaintBasicESP);
-            canvas.DrawCircle(new SKPoint(900, 900), 100, SKPaints.PaintBasicESP);
-
-            //for (int i = 0; i < 10; i++)
-            //{
-            //    canvas.DrawCircle(
-            //        new SKPoint(random.Next(0, width), random.Next(0, height)),
-            //        random.Next(10, 100),
-            //        SKPaints.PaintBasicESP
-            //    );
-            //}
+            for (int i = 0; i < 10; i++)
+            {
+                canvas.DrawCircle(
+                    new SKPoint(random.Next(0, width), random.Next(0, height)),
+                    random.Next(10, 100),
+                    SKPaints.PaintBasicESP
+                );
+            }
         }
         #endregion
 
