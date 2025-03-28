@@ -110,15 +110,28 @@ namespace eft_dma_shared.Common.DMA
             }
             catch (Exception ex)
             {
-                throw new Exception(
-                "DMA Initialization Failed!\n" +
-                $"Reason: {ex.Message}\n" +
-                $"{versions}\n\n" +
-                "===TROUBLESHOOTING===\n" +
-                "1. Reboot both your Game PC / Radar PC (This USUALLY fixes it).\n" +
-                "2. Reseat all cables/connections and make sure they are secure.\n" +
-                "3. Changed Hardware/Operating System on Game PC? Delete your mmap.txt and symbols folder.\n" +
-                "4. Make sure all Setup Steps are completed (See DMA Setup Guide/FAQ for additional troubleshooting).");
+                LoneLogging.WriteLine("WARNING: DMA Initialization Failed!");
+                LoneLogging.WriteLine($"Reason: {ex.Message}");
+                LoneLogging.WriteLine($"{versions}");
+
+                // Log troubleshooting steps
+                LoneLogging.WriteLine("===TROUBLESHOOTING===");
+                LoneLogging.WriteLine("1. Reboot both your Game PC / Radar PC (This USUALLY fixes it).");
+                LoneLogging.WriteLine("2. Reseat all cables/connections and make sure they are secure.");
+                LoneLogging.WriteLine("3. Changed Hardware/Operating System on Game PC? Reset your DMA Config ('Options' menu in Client) and try again.");
+                LoneLogging.WriteLine("4. Make sure all Setup Steps are completed (See DMA Setup Guide/FAQ for additional troubleshooting).");
+
+                DialogResult result = MessageBox.Show(
+                    "DMA Initialization Failed!\n\nCreating a dummy window for debugging?",
+                    "DMA Initialization Failed!",
+                    MessageBoxButtons.OKCancel,
+                    MessageBoxIcon.Warning
+                );
+
+                if (result == DialogResult.Cancel || result == DialogResult.None)
+                {
+                    Environment.Exit(0);
+                }
             }
         }
 
@@ -157,7 +170,7 @@ namespace eft_dma_shared.Common.DMA
         /// </summary>
         public void FullRefresh()
         {
-            if (!_hVMM.SetConfig(Vmm.CONFIG_OPT_REFRESH_ALL, 1))
+            if (_hVMM == null || !_hVMM.SetConfig(Vmm.CONFIG_OPT_REFRESH_ALL, 1))
                 LoneLogging.WriteLine("WARNING: Vmm FULL Refresh Failed!");
         }
 

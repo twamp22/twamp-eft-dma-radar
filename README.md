@@ -5,20 +5,24 @@
 ## What is this?
 - This is an up-to-date build of Lone DMA EFT/Arena Radar. This is a standalone copy of the software with *No Restrictions*.
 
+## What is changed?
+- Speed increased from 1.2x to 1.4x
+- Wide Lean modified or 3 levels of Huge Lean Upwards
+- ESP Window Options (always on top, click through & chroma black)
+- Loot through walls 10x extend range
+
 ## How do I start using this?
-1. Download the [Release](https://github.com/Lone83427/lone-eft-dma-radar/releases/tag/compiled).
-2. Unzip the downloaded package using the specified password `lone`.
-   - [7-Zip](https://www.7-zip.org/) is a good software for unzipping files.
-3. If this is your first time, read the README in the Setup folder.
-4. Run the .EXE `eft-dma-radar.exe` or `arena-dma-radar.exe`
-5. Enjoy!
-![image](https://github.com/user-attachments/assets/942d7a28-627b-4428-a3a9-60fccbe87ed1)
+1. Download & extract the solution
+2. Open solution with visual studio
+3. Publish the `eft-dma-radar` or `arena-dma-radar` project
+4. If required, locate & move the `libSkiaSharp.dll` & `libHarfBuzzSharp.dll` from the `publish/runtimes` folder into `publish` folder
+5. Run `eft-dma-radar.exe` or `arena-dma-radar.exe` depending on what you've published
 
 ## Arena
 - Arena is supported and will be maintained going forward.
 
 ## Donations
-- If you would like to donate, any contribution is appreciated! ❤️
+- If you would like to donate directly to Lone:
   - Bitcoin: `bc1q7l4w7n3mt0rawztj0xl4me7mrnhjdr0hgjh2xp`
   - Litecoin: `ltc1qlllsgdzq3dt2w2zchf7sxmy0t75sn4x6ethhez`
   - Dogecoin: `DDiva1gAP1b9bi2cWfmZvDsQTQesxJAALw`

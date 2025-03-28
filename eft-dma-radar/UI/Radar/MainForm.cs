@@ -1964,7 +1964,6 @@ namespace eft_dma_radar.UI.Radar
                     top + labelHeight + spacing);
                 canvas.DrawRect(bgRect, SKPaints.PaintTransparentBacker);
                 var textLoc = new SKPoint(clientArea.Width / 2, top + labelHeight);
-                //canvas.DrawText(label, textLoc, SKPaints.TextStatusSmall);
             }
             catch (Exception ex)
             {
