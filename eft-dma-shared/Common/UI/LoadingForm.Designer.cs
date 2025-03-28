@@ -84,7 +84,7 @@
             Name = "LoadingForm";
             ShowInTaskbar = false;
             Text = "Loading";
-            TopMost = true;
+            TopMost = false;
             flowLayoutPanel_Progress.ResumeLayout(false);
             flowLayoutPanel_Progress.PerformLayout();
             ResumeLayout(false);
