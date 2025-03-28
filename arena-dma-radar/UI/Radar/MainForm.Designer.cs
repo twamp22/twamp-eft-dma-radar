@@ -37,7 +37,6 @@
             flowLayoutPanel_RadarSettings = new FlowLayoutPanel();
             label2 = new Label();
             label8 = new Label();
-            linkLabel_CheckForUpdates = new LinkLabel();
             label1 = new Label();
             button_Restart = new Button();
             button_HotkeyManager = new Button();
@@ -206,7 +205,6 @@
             flowLayoutPanel_RadarSettings.BorderStyle = BorderStyle.FixedSingle;
             flowLayoutPanel_RadarSettings.Controls.Add(label2);
             flowLayoutPanel_RadarSettings.Controls.Add(label8);
-            flowLayoutPanel_RadarSettings.Controls.Add(linkLabel_CheckForUpdates);
             flowLayoutPanel_RadarSettings.Controls.Add(label1);
             flowLayoutPanel_RadarSettings.Controls.Add(button_Restart);
             flowLayoutPanel_RadarSettings.Controls.Add(button_HotkeyManager);
@@ -245,20 +243,6 @@
             label8.Size = new Size(0, 0);
             label8.TabIndex = 46;
             label8.Text = "label8";
-            // 
-            // linkLabel_CheckForUpdates
-            // 
-            linkLabel_CheckForUpdates.AutoSize = true;
-            flowLayoutPanel_RadarSettings.SetFlowBreak(linkLabel_CheckForUpdates, true);
-            linkLabel_CheckForUpdates.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            linkLabel_CheckForUpdates.Location = new Point(9, 27);
-            linkLabel_CheckForUpdates.Margin = new Padding(3, 6, 3, 6);
-            linkLabel_CheckForUpdates.Name = "linkLabel_CheckForUpdates";
-            linkLabel_CheckForUpdates.Size = new Size(278, 15);
-            linkLabel_CheckForUpdates.TabIndex = 47;
-            linkLabel_CheckForUpdates.TabStop = true;
-            linkLabel_CheckForUpdates.Text = "Check for updates at lone-eft.com/ongoingsupport";
-            linkLabel_CheckForUpdates.LinkClicked += linkLabel_CheckForUpdates_LinkClicked;
             // 
             // label1
             // 
@@ -1643,7 +1627,6 @@
         private Button button_VischeckInvisColorPick;
         private RadioButton radioButton_Chams_Visible;
         private FlowLayoutPanel flowLayoutPanel_MemWriteCheckbox;
-        private LinkLabel linkLabel_CheckForUpdates;
     }
 }
 
