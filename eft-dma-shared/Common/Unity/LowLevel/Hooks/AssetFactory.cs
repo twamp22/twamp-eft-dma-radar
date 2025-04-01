@@ -1,4 +1,4 @@
-﻿using eft_dma_shared.Common.Misc;
+﻿using eft_dma_shared.Common.Misc.Commercial;
 using System.Runtime.CompilerServices;
 
 namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
@@ -23,7 +23,7 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
             _loadedBundle = 0;
         }
 
-        public static bool LoadBundle(ulong assetBundle, ulong shaderName, ulong shaderTypeObject)
+        public static bool LoadBundle(ulong assetBundle, ulong shaderName, ulong shaderTypeObject, string bundle)
         {
             ulong assetBundle_LoadFromMemory = NativeHook.UnityPlayerDll + NativeOffsets.AssetBundle_CUSTOM_LoadFromMemory_Internal;
             ulong assetBundle_LoadAsset = NativeHook.UnityPlayerDll + NativeOffsets.AssetBundle_CUSTOM_LoadAsset_Internal;
@@ -31,7 +31,7 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
             _loadedBundle = NativeHook.Call(assetBundle_LoadFromMemory, assetBundle, 0) ?? 0;
             if (_loadedBundle == 0x0)
             {
-                LoneLogging.WriteLine("[LoadBundle] -> Unable to load asset bundle from " + assetBundle.ToString("X"));
+                LoneLogging.WriteLine($"[LoadBundle] -> {bundle} Unable to load asset bundle from " + assetBundle.ToString("X"));
                 return false;
             }
             else

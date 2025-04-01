@@ -16,7 +16,6 @@
 	<ServerGarbageCollection>true</ServerGarbageCollection>
 	<ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
 	<RetainVMGarbageCollection>true</RetainVMGarbageCollection>
-	<Deterministic>false</Deterministic>
   </PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
 		<DebugType>none</DebugType>
@@ -57,7 +56,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="DarkModeForms.imerzan" Version="1.0.1" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Abstractions" Version="9.0.2" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Abstractions" Version="9.0.0" />
 		<PackageReference Include="SkiaSharp.Views.WindowsForms" Version="2.88.9" />
 	</ItemGroup>
 

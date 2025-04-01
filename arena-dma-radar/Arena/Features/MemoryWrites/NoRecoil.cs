@@ -1,8 +1,8 @@
 ﻿using arena_dma_radar.Arena.ArenaPlayer;
 using arena_dma_radar.Arena.Features;
-using eft_dma_shared.Common.Misc;
 using eft_dma_shared.Common.DMA.ScatterAPI;
 using eft_dma_shared.Common.Features;
+using eft_dma_shared.Common.Misc.Commercial;
 
 namespace arena_dma_radar.Arena.Features.MemoryWrites
 {

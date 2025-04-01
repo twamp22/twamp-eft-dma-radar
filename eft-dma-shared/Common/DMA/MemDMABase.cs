@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using eft_dma_shared.Common.Misc;
 using eft_dma_shared.Common.DMA.ScatterAPI;
+using eft_dma_shared.Common.Misc.Commercial;
 using eft_dma_shared.Common.Unity.LowLevel.Hooks;
 
 namespace eft_dma_shared.Common.DMA
@@ -110,17 +111,16 @@ namespace eft_dma_shared.Common.DMA
             }
             catch (Exception ex)
             {
-                LoneLogging.WriteLine("WARNING: DMA Initialization Failed!");
-                LoneLogging.WriteLine($"Reason: {ex.Message}");
-                LoneLogging.WriteLine($"{versions}");
-
-                // Log troubleshooting steps
-                LoneLogging.WriteLine("===TROUBLESHOOTING===");
-                LoneLogging.WriteLine("1. Reboot both your Game PC / Radar PC (This USUALLY fixes it).");
-                LoneLogging.WriteLine("2. Reseat all cables/connections and make sure they are secure.");
-                LoneLogging.WriteLine("3. Changed Hardware/Operating System on Game PC? Reset your DMA Config ('Options' menu in Client) and try again.");
-                LoneLogging.WriteLine("4. Make sure all Setup Steps are completed (See DMA Setup Guide/FAQ for additional troubleshooting).");
-
+                LoneLogging.WriteLine(
+                "DMA Initialization Failed!\n" +
+                $"Reason: {ex.Message}\n" +
+                $"{versions}\n\n" +
+                "===TROUBLESHOOTING===\n" +
+                "1. Reboot both your Game PC / Radar PC (This USUALLY fixes it).\n" +
+                "2. Reseat all cables/connections and make sure they are secure.\n" +
+                "3. Changed Hardware/Operating System on Game PC? Delete your mmap.txt and symbols folder.\n" +
+                "4. Make sure all Setup Steps are completed (See DMA Setup Guide/FAQ for additional troubleshooting).");
+                
                 DialogResult result = MessageBox.Show(
                     "DMA Initialization Failed!\n\nCreating a dummy window for debugging?",
                     "DMA Initialization Failed!",
@@ -381,6 +381,58 @@ namespace eft_dma_shared.Common.DMA
                 if (AntiPage.Initialized)
                     AntiPage.Register(addr, cb);
                 throw;
+            }
+        }
+        /// <summary>
+        /// Read memory into a buffer and validate the right bytes were received.
+        /// </summary>
+        public static byte[] ReadBufferEnsureE(ulong addr, int size)
+        {
+            const int ValidationCount = 3;       
+            try
+            {
+                // Ensure MemoryInterface.Memory is initialized
+                if (MemoryInterface.Memory == null)
+                    throw new Exception("[DMA] MemoryInterface.Memory is not initialized!");
+        
+                byte[][] buffers = new byte[ValidationCount][];
+                for (int i = 0; i < ValidationCount; i++)
+                {
+                    buffers[i] = new byte[size];
+        
+                    unsafe
+                    {
+                        fixed (byte* bufferPtr = buffers[i])
+                        {
+                            uint bytesRead = MemoryInterface.Memory._hVMM.MemRead(
+                                MemoryInterface.Memory.PID, // Process ID
+                                addr,                      // Memory Address
+                                (nint)bufferPtr,           // Pointer to buffer
+                                (uint)size,                // Size to read
+                                Vmm.FLAG_NOCACHE           // No cache flag
+                            );
+        
+                            if (bytesRead != size)
+                                throw new Exception("Incomplete memory read!");
+                        }
+                    }
+                }
+        
+                // Check that all arrays have the same contents
+                for (int i = 1; i < ValidationCount; i++)
+                {
+                    if (!buffers[i].SequenceEqual(buffers[0]))
+                    {
+                        LoneLogging.WriteLine($"[WARN] ReadBufferEnsure() -> 0x{addr:X} did not pass validation!");
+                        return null;
+                    }
+                }
+        
+                return buffers[0];
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"[DMA] ERROR reading buffer at 0x{addr:X}", ex);
             }
         }
 

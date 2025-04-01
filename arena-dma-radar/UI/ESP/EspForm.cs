@@ -8,6 +8,7 @@ using eft_dma_shared.Common.Unity;
 using arena_dma_radar.Arena.Features.MemoryWrites;
 using eft_dma_shared.Common.ESP;
 using eft_dma_shared.Common.Players;
+using eft_dma_shared.Common.Misc.Commercial;
 
 namespace arena_dma_radar.UI.ESP
 {

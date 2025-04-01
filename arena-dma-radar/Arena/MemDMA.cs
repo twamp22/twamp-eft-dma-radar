@@ -7,7 +7,7 @@ using arena_dma_radar.Arena.GameWorld;
 using System.Runtime;
 using eft_dma_shared.Common.DMA;
 using eft_dma_shared.Common.Unity;
-using eft_dma_shared.Common.Misc;
+using eft_dma_shared.Common.Misc.Commercial;
 
 namespace arena_dma_radar.Arena
 {
@@ -237,7 +237,7 @@ namespace arena_dma_radar.Arena
         /// </summary>
         private void LoadProcess()
         {
-            if (_hVMM == null || _hVMM == null || !_hVMM.PidGetFromName(_processName, out uint pid))
+            if (_hVMM == null || !_hVMM.PidGetFromName(_processName, out uint pid))
                 throw new Exception($"Unable to find '{_processName}'");
             _pid = pid;
         }
@@ -360,6 +360,7 @@ namespace arena_dma_radar.Arena
         /// Get the Code Cave Address for NativeHook.
         /// </summary>
         /// <exception cref="Exception"></exception>
+        [Obfuscation(Feature = "Virtualization", Exclude = false)]
         public override ulong GetCodeCave()
         {
             var @class = MonoLib.MonoClass.Find("Assembly-CSharp", "EFT.ArenaMainApplication", out _);

@@ -19,6 +19,7 @@ using arena_dma_radar.Arena.Features;
 using arena_dma_radar.Arena.Features.MemoryWrites;
 using arena_dma_radar.Arena.Features.MemoryWrites.Patches;
 using eft_dma_shared.Common.ESP;
+using eft_dma_shared.Common.Misc.Commercial;
 
 namespace arena_dma_radar.UI.Radar
 {
@@ -630,7 +631,7 @@ namespace arena_dma_radar.UI.Radar
                 case ChamsManager.ChamsMode.Basic:
                     radioButton_Chams_Basic.Checked = true;
                     break;
-                case ChamsManager.ChamsMode.VisCheck:
+                case ChamsManager.ChamsMode.VisCheckGlow:
                     radioButton_Chams_Vischeck.Checked = true;
                     break;
                 case ChamsManager.ChamsMode.Visible:
@@ -858,7 +859,7 @@ namespace arena_dma_radar.UI.Radar
         {
             var enabled = radioButton_Chams_Vischeck.Checked;
             if (enabled)
-                Chams.Config.Mode = ChamsManager.ChamsMode.VisCheck;
+                Chams.Config.Mode = ChamsManager.ChamsMode.VisCheckGlow;
             flowLayoutPanel_Vischeck.Enabled = enabled;
         }
 
@@ -1778,5 +1779,15 @@ namespace arena_dma_radar.UI.Radar
             ScaleESPPaints();
         }
         #endregion
+
+        private void linkLabel_CheckForUpdates_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            const string updatesUrl = "https://lone-eft.com/opensource";
+            Process.Start(new ProcessStartInfo()
+            {
+                FileName = updatesUrl,
+                UseShellExecute = true
+            });
+        }
     }
 }

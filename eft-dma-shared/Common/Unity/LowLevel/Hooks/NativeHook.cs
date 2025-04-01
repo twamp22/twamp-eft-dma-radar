@@ -1,5 +1,6 @@
-﻿using eft_dma_shared.Common.Misc;
-using eft_dma_shared.Common.DMA;
+﻿using eft_dma_shared.Common.DMA;
+using eft_dma_shared.Common.Misc;
+using eft_dma_shared.Common.Misc.Commercial;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Reflection;
@@ -10,6 +11,13 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
     public static class NativeHook
     {
         private static readonly Stopwatch _ratelimit = new();
+
+        // Backing Fields
+        private static ulong _codeCave;
+        private static ulong _unityPlayerDll;
+        private static ulong _monoDll;
+        private static ulong _hookedMonoFuncAddress;
+        private static ulong _hookedMonoFunc;
 
         /// <summary>
         /// Low Level Cache Access.
@@ -25,28 +33,28 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
         /// ShellCodeData struct is placed here at 0x0.
         /// Order 1
         /// </summary>
-        internal static ulong CodeCave { get; private set; }
+        internal static ulong CodeCave => _codeCave.Deobfuscate();
         /// <summary>
         /// MonoRuntimeInvoke Address.
         /// </summary>
-        private static ulong HookedMonoFuncAddress { get; set; }
+        private static ulong HookedMonoFuncAddress => _hookedMonoFuncAddress.Deobfuscate();
         /// <summary>
         /// Original MonoRuntimeInvoke Function Address.
         /// </summary>
-        private static ulong HookedMonoFunc { get; set; }
+        private static ulong HookedMonoFunc => _hookedMonoFunc.Deobfuscate();
         /// <summary>
         /// UnityPlayer.dll Base Addr
         /// </summary>
-        internal static ulong UnityPlayerDll { get; private set; }
+        internal static ulong UnityPlayerDll => _unityPlayerDll.Deobfuscate();
         /// <summary>
         /// mono-2.0-bdwgc.dll Base Addr
         /// </summary>
-        internal static ulong MonoDll { get; private set; }
+        internal static ulong MonoDll => _monoDll.Deobfuscate();
 
         /// <summary>
         /// True if NativeHook is initialized, otherwise False.
         /// </summary>
-        public static bool Initialized => CodeCave != 0x0;
+        public static bool Initialized => _codeCave != 0x0;
         /// <summary>
         /// Hook Fn Address (within the code cave).
         /// Order 2
@@ -67,11 +75,11 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
         {
             lock (SyncRoot)
             {
-                CodeCave = default;
-                HookedMonoFuncAddress = default;
-                HookedMonoFunc = default;
-                UnityPlayerDll = default;
-                MonoDll = default;
+                _codeCave = default;
+                _hookedMonoFuncAddress = default;
+                _hookedMonoFunc = default;
+                _unityPlayerDll = default;
+                _monoDll = default;
                 ChamsManager.Reset();
                 AssetFactory.Reset();
                 AntiPage.Reset();
@@ -84,6 +92,7 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
         /// Invoke Hook Fn Bytes for our code cave. This is the shellcode that will be executed by the ~IAT hook.
         /// </summary>
         /// <returns>Byte array</returns>
+        [Obfuscation(Feature = "Virtualization", Exclude = false)]
         private static byte[] GetInvokeHookShellcode()
         {
             return new byte[]
@@ -144,13 +153,13 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
                     ulong monoDll = Memory.MonoBase;
                     unityDll.ThrowIfInvalidVirtualAddress();
                     monoDll.ThrowIfInvalidVirtualAddress();
-                    UnityPlayerDll = unityDll;
-                    MonoDll = monoDll;
+                    _unityPlayerDll = unityDll.Obfuscate();
+                    _monoDll = monoDll.Obfuscate();
                     ulong hookedMonoFuncAddr = unityDll + NativeOffsets.mono_gc_is_incremental;
                     ulong hookedMonoFunc = Memory.ReadValueEnsure<ulong>(hookedMonoFuncAddr);
                     hookedMonoFunc.ThrowIfInvalidVirtualAddress();
-                    HookedMonoFuncAddress = hookedMonoFuncAddr;
-                    HookedMonoFunc = hookedMonoFunc;
+                    _hookedMonoFuncAddress = hookedMonoFuncAddr.Obfuscate();
+                    _hookedMonoFunc = hookedMonoFunc.Obfuscate();
 
                     // Read original bytes from first code cave
                     ulong invokeHookFunction = MemDMABase.AlignAddress(preCodeCave + (uint)sizeof(ShellCodeData)) + 8;
@@ -166,7 +175,7 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
                     // Place pre-invoke hook shellcode within code cave
                     Memory.WriteBufferEnsure(invokeHookFunction, invokeHookBytes.AsSpan());
                     // Partial Success -> Set Field
-                    CodeCave = preCodeCave;
+                    _codeCave = preCodeCave.Obfuscate();
 
                     // Alloc RWX Region to move shellcode to
                     ulong codeCave = NativeMethods.AllocRWX(); // lock re-entrancy is OK
@@ -176,14 +185,14 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
                     BinaryPrimitives.WriteUInt64LittleEndian(invokeHookBytes.AsSpan(6), codeCave);
                     Memory.WriteBufferEnsure(invokeHookFunction, invokeHookBytes.AsSpan());
                     // Success -> Set Cache
-                    CodeCave = codeCave;
+                    _codeCave = codeCave.Obfuscate();
                     SetCache();
                     LoneLogging.WriteLine("[NativeHook]: Initialize() -> OK");
                     return true;
                 }
                 catch (Exception ex)
                 {
-                    CodeCave = default;
+                    _codeCave = default;
                     LoneLogging.WriteLine($"[NativeHook]: Initialize() -> Exception: {ex}");
                     return false;
                 }
@@ -211,15 +220,16 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
         /// </summary>
         /// <param name="codeCave">Code Cave Address for this process.</param>
         /// <returns>True if initialized OK from Cache, otherwise False.</returns>
+        [Obfuscation(Feature = "Virtualization", Exclude = false)]
         private static bool TryInitFromCache()
         {
             if (Memory.PID == Cache.PID && Cache.CodeCave != 0x0)
             {
-                UnityPlayerDll = Cache.UnityPlayerDll;
-                MonoDll = Cache.MonoDll;
-                HookedMonoFuncAddress = Cache.HookedMonoFuncAddress;
-                HookedMonoFunc = Cache.HookedMonoFunc;
-                CodeCave = Cache.CodeCave;
+                _unityPlayerDll = Cache.UnityPlayerDll;
+                _monoDll = Cache.MonoDll;
+                _hookedMonoFuncAddress = Cache.HookedMonoFuncAddress;
+                _hookedMonoFunc = Cache.HookedMonoFunc;
+                _codeCave = Cache.CodeCave;
                 LoneLogging.WriteLine("[NativeHook]: Initialize() -> Initialized from cache!");
                 return true;
             }
@@ -229,14 +239,15 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
         /// <summary>
         /// Set the Cache Data.
         /// </summary>
+        [Obfuscation(Feature = "Virtualization", Exclude = false)]
         private static void SetCache()
         {
             Cache.PID = Memory.PID;
-            Cache.UnityPlayerDll = UnityPlayerDll;
-            Cache.MonoDll = MonoDll;
-            Cache.HookedMonoFuncAddress = HookedMonoFuncAddress;
-            Cache.HookedMonoFunc = HookedMonoFunc;
-            Cache.CodeCave = CodeCave;
+            Cache.UnityPlayerDll = _unityPlayerDll;
+            Cache.MonoDll = _monoDll;
+            Cache.HookedMonoFuncAddress = _hookedMonoFuncAddress;
+            Cache.HookedMonoFunc = _hookedMonoFunc;
+            Cache.CodeCave = _codeCave;
             _ = Cache.SaveAsync();
         }
 

@@ -2,6 +2,7 @@
 
 namespace arena_dma_radar.UI.ColorPicker.ESP
 {
+    [Obfuscation(Exclude = true, Feature = "renaming")]
     public enum EspColorOption
     {
         FriendlyPlayer,

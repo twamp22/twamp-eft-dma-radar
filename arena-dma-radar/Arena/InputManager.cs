@@ -1,7 +1,7 @@
 ﻿using arena_dma_radar.UI.Hotkeys;
-using eft_dma_shared.Common.Misc;
 using eft_dma_shared.Common.DMA;
 using eft_dma_shared.Common.DMA.ScatterAPI;
+using eft_dma_shared.Common.Misc.Commercial;
 using eft_dma_shared.Common.Unity;
 
 namespace arena_dma_radar.Arena

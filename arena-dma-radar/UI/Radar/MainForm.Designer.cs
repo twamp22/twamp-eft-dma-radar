@@ -140,6 +140,7 @@
             label_Pos = new Label();
             skglControl_Radar = new SKGLControl();
             tabControl1 = new TabControl();
+            linkLabel_CheckForUpdates = new LinkLabel();
             tabPage2.SuspendLayout();
             flowLayoutPanel_Settings.SuspendLayout();
             flowLayoutPanel_RadarSettings.SuspendLayout();
@@ -205,6 +206,7 @@
             flowLayoutPanel_RadarSettings.BorderStyle = BorderStyle.FixedSingle;
             flowLayoutPanel_RadarSettings.Controls.Add(label2);
             flowLayoutPanel_RadarSettings.Controls.Add(label8);
+            flowLayoutPanel_RadarSettings.Controls.Add(linkLabel_CheckForUpdates);
             flowLayoutPanel_RadarSettings.Controls.Add(label1);
             flowLayoutPanel_RadarSettings.Controls.Add(button_Restart);
             flowLayoutPanel_RadarSettings.Controls.Add(button_HotkeyManager);
@@ -1466,6 +1468,19 @@
             tabControl1.Size = new Size(1264, 681);
             tabControl1.TabIndex = 8;
             // 
+            // linkLabel_CheckForUpdates
+            // 
+            linkLabel_CheckForUpdates.AutoSize = true;
+            flowLayoutPanel_RadarSettings.SetFlowBreak(linkLabel_CheckForUpdates, true);
+            linkLabel_CheckForUpdates.Location = new Point(9, 27);
+            linkLabel_CheckForUpdates.Margin = new Padding(3, 6, 3, 6);
+            linkLabel_CheckForUpdates.Name = "linkLabel_CheckForUpdates";
+            linkLabel_CheckForUpdates.Size = new Size(255, 15);
+            linkLabel_CheckForUpdates.TabIndex = 47;
+            linkLabel_CheckForUpdates.TabStop = true;
+            linkLabel_CheckForUpdates.Text = "Check for updates at lone-eft.com/opensource";
+            linkLabel_CheckForUpdates.LinkClicked += linkLabel_CheckForUpdates_LinkClicked;
+            // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -1627,6 +1642,7 @@
         private Button button_VischeckInvisColorPick;
         private RadioButton radioButton_Chams_Visible;
         private FlowLayoutPanel flowLayoutPanel_MemWriteCheckbox;
+        private LinkLabel linkLabel_CheckForUpdates;
     }
 }
 

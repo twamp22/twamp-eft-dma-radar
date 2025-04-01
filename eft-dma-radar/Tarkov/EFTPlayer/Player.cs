@@ -16,6 +16,7 @@ using eft_dma_shared.Common.Maps;
 using eft_dma_radar.Tarkov.Features.MemoryWrites;
 using eft_dma_shared.Common.ESP;
 using eft_dma_shared.Common.Misc.Data;
+using eft_dma_shared.Common.Misc.Commercial;
 using eft_dma_shared.Common.Misc.Pools;
 using eft_dma_shared.Common.DMA;
 
@@ -169,6 +170,11 @@ namespace eft_dma_radar.Tarkov.EFTPlayer
         public string TwitchChannelURL { get; protected set; }
 
         /// <summary>
+        /// Player Value
+        /// </summary>
+        public string Value { get; protected set; }
+
+        /// <summary>
         /// Player's Rotation in Local Game World.
         /// </summary>
         public Vector2 Rotation { get; private set; }
@@ -248,7 +254,9 @@ namespace eft_dma_radar.Tarkov.EFTPlayer
         /// Player name.
         /// </summary>
         public virtual string Name { get; set; }
-
+        public PlayerProfile Profile { get; private set; }    
+        public float KD => Profile.Overall_KD ?? 0f;
+        public int TotalHoursPlayed => Profile.Hours ?? 0;
         /// <summary>
         /// Account UUID for Human Controlled Players.
         /// </summary>
@@ -1184,24 +1192,6 @@ namespace eft_dma_radar.Tarkov.EFTPlayer
                         Name = "Zombie Tagilla",
                         Type = PlayerType.AIBoss
                     };
-                case Enums.WildSpawnType.bossTagillaAgro:
-                    return new AIRole()
-                    {
-                        Name = "bossTagillaAgro",
-                        Type = PlayerType.AIBoss
-                    };
-                case Enums.WildSpawnType.bossKillaAgro:
-                    return new AIRole()
-                    {
-                        Name = "bossKillaAgro",
-                        Type = PlayerType.AIBoss
-                    };
-                case Enums.WildSpawnType.tagillaHelperAgro:
-                    return new AIRole()
-                    {
-                        Name = "tagillaHelperAgro",
-                        Type = PlayerType.AIBoss
-                    };
                 default:
                     LoneLogging.WriteLine("WARNING: Unknown WildSpawnType: " + (int)wildSpawnType);
                     return new AIRole()
@@ -1563,6 +1553,7 @@ namespace eft_dma_radar.Tarkov.EFTPlayer
                 if (loot is not null)
                 {
                     var playerValue = TarkovMarketItem.FormatPrice(gear?.Value ?? -1);
+                    Value = playerValue;
                     lines.Add($"Value: {playerValue}");
                     var iterations = 0;
                     foreach (var item in loot)

@@ -1,12 +1,13 @@
-﻿using eft_dma_shared.Common.Misc;
-using eft_dma_radar.UI.Misc;
+﻿using eft_dma_radar.UI.Misc;
 using eft_dma_shared.Common.DMA;
+using eft_dma_shared.Common.Misc.Commercial;
 
 namespace eft_dma_radar.Tarkov.API
 {
     public static class EFTProfileService
     {
         #region Fields / Constructor
+        private static readonly HttpClient _client;
         private static readonly Lock _syncRoot = new();
         private static readonly ConcurrentDictionary<string, ProfileData> _profiles = new(StringComparer.OrdinalIgnoreCase);
         private static readonly HashSet<string> _eftApiNotFound = new(StringComparer.OrdinalIgnoreCase);
@@ -21,6 +22,16 @@ namespace eft_dma_radar.Tarkov.API
 
         static EFTProfileService()
         {
+            var handler = new HttpClientHandler()
+            {
+                AllowAutoRedirect = true,
+                SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13,
+                AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip
+            };
+            _client = new HttpClient(handler);
+            _client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue("identity"));
+            _client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue("deflate"));
+            _client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
             new Thread(Worker)
             {
                 Priority = ThreadPriority.Lowest,
@@ -152,7 +163,7 @@ namespace eft_dma_radar.Tarkov.API
                     return null;
                 }
                 string url = baseUrl + accountId + ".json";
-                using var response = await SharedProgram.HttpClient.GetAsync(url);
+                using var response = await _client.GetAsync(url);
                 if (response.StatusCode is HttpStatusCode.NotFound)
                 {
                     LoneLogging.WriteLine($"[EFTProfileService] Profile '{accountId}' not found by Tarkov.Dev.");
@@ -195,7 +206,7 @@ namespace eft_dma_radar.Tarkov.API
                     return null;
                 }
                 string url = baseUrl + accountId + "?includeOnlyPmcStats=true";
-                using var response = await SharedProgram.HttpClient.GetAsync(url);
+                using var response = await _client.GetAsync(url);
                 if (response.StatusCode is HttpStatusCode.NotFound)
                 {
                     LoneLogging.WriteLine($"[EFTProfileService] Profile '{accountId}' not found by eft-api.tech.");
@@ -233,9 +244,12 @@ namespace eft_dma_radar.Tarkov.API
         public sealed class ProfileData
         {
 
+            [JsonPropertyName("aid")]
+            public int AccountID { get; set; }
+            
             [JsonPropertyName("info")]
             public ProfileInfo Info { get; set; }
-
+            
             [JsonPropertyName("pmcStats")]
             public StatsContainer PmcStats { get; set; }
 
@@ -244,13 +258,19 @@ namespace eft_dma_radar.Tarkov.API
         {
             [JsonPropertyName("nickname")]
             public string Nickname { get; set; }
-
+            
+            [JsonPropertyName("side")]
+            public string Side { get; set; }
+            
             [JsonPropertyName("experience")]
             public int Experience { get; set; }
-
+            
             [JsonPropertyName("memberCategory")]
             public int MemberCategory { get; set; }
-
+            
+            [JsonPropertyName("prestigeLevel")]
+            public int Prestige { get; set; }
+            
             [JsonPropertyName("registrationDate")]
             public int RegistrationDate { get; set; }
         }

@@ -1,4 +1,8 @@
-﻿namespace eft_dma_shared.Common.Players
+﻿using eft_dma_shared.Common.Misc.Commercial;
+using System.Net.Http.Json;
+using System.Reflection;
+
+namespace eft_dma_shared.Common.Players
 {
     /// <summary>
     /// Interface defining a player that is the LocalPlayer running this software.

@@ -2,8 +2,10 @@
 using eft_dma_radar.UI.ESP;
 using eft_dma_radar.UI.Misc;
 using eft_dma_radar.UI.Radar;
+using eft_dma_shared.Common.ESP;
 using eft_dma_shared.Common.Maps;
 using eft_dma_shared.Common.Misc;
+using eft_dma_shared.Common.Misc.Commercial;
 using eft_dma_shared.Common.Misc.Data;
 using eft_dma_shared.Common.Players;
 using eft_dma_shared.Common.Unity;
@@ -36,6 +38,56 @@ namespace eft_dma_radar.Tarkov.GameWorld.Exits
             if (GameData.ExfilNames.TryGetValue(Memory.MapID, out var mapExfils)
                 && mapExfils.TryGetValue(Name, out var exfilName))
                 Name = exfilName;
+             #region Secret Name Filtering
+             switch(Name.ToLower())
+             {
+                 /// Customs
+                 case "customs_secret_voron_boat":
+                     Name = "Smugglers' Boat (Secret)";
+                     break;
+                 case "customs_secret_voron_bunker":
+                     Name = "Smugglers' Bunker (ZB-1012) (Secret)";
+                     break;
+                 case "customs_sniper_exit":
+                     Name = "Railroad Passage (Flare)";
+                     break;
+                 case "custom_scav_pmc":
+                     Name = "Boiler Room Basement (Co-op)";
+                     break;
+                 /// Streets
+                 case "streets_secret_onyx":
+                     Name = "Smugglers' Basement (Secret)";
+                     break;
+                 /// Shoreline
+                 case "shoreline_secret_heartbeat":
+                     Name = "Mountain Bunker (Secret)";
+                     break;
+                 /// Factory
+                 case "factory_secret_ark":
+                     Name = "Smugglers' Passage (Secret)";
+                     break;
+                 /// Ground Zero
+                 case "groundzero_secret_adaptation":
+                     Name = "Tartowers Sales Office (Secret)";
+                     break;
+                 /// Woods
+                 case "wood_sniper_exit":
+                     Name = "Power Line Passage (Flare)";
+                     break;
+                 case "woods_secret_minefield":
+                     Name = "Railway Bridge to Tarkov (Secret)";
+                     break;
+                 /// Reserve
+                 case "reserve_secret_minefield":
+                     Name = "Exit to Woods (Secret)";
+                     break;
+                 /// Lighthouse
+                 case "lighthouse_secret_minefield":
+                     Name = "Passage by the Lake (Secret)";
+                     break;
+            
+             }
+             #endregion
             _position = new UnityTransform(transformInternal, false).UpdatePosition();
         }
 
@@ -131,6 +183,20 @@ namespace eft_dma_radar.Tarkov.GameWorld.Exits
 
         private SKPaint GetPaint()
         {
+            if (Name.ToLower().Contains("secret"))
+            {
+                switch(Status)
+                {
+                    case EStatus.Open:
+                        return SKPaints.PaintExfilOpen;
+                    case EStatus.Pending:
+                        return SKPaints.PaintExfilPending;
+                    case EStatus.Closed:
+                        return SKPaints.PaintExfilClosed;
+                    default:
+                        return SKPaints.PaintExfilClosed;
+                }
+            }
             var localPlayer = Memory.LocalPlayer;
             if (localPlayer is not null && localPlayer.IsPmc &&
                 !PmcEntries.Contains(localPlayer.EntryPoint ?? "NULL"))
@@ -162,6 +228,14 @@ namespace eft_dma_radar.Tarkov.GameWorld.Exits
 
         public void DrawESP(SKCanvas canvas, LocalPlayer localPlayer)
         {
+            if (!CameraManagerBase.WorldToScreen(ref _position, out var scrPos))
+                return;
+            if (Name.ToLower().Contains("secret") && (Status is EStatus.Pending || Status is EStatus.Open)) // when we have found the secret letter, draw extract
+            {
+                var label1 = $"{Name} ({Status.GetDescription()})";
+                scrPos.DrawESPText(canvas, this, localPlayer, ESP.Config.ShowDistances, SKPaints.TextExfilESP, label1);
+                return;
+            }
             if (localPlayer.IsPmc &&
                 !PmcEntries.Contains(localPlayer.EntryPoint))
                 return;
@@ -171,8 +245,6 @@ namespace eft_dma_radar.Tarkov.GameWorld.Exits
             if (!localPlayer.IsPmc && Status is not EStatus.Open)
                 return; // Only draw available SCAV Exfils
             if (Status is EStatus.Closed) // Only draw open/pending exfils
-                return;
-            if (!CameraManagerBase.WorldToScreen(ref _position, out var scrPos))
                 return;
             var label = $"{Name} ({Status.GetDescription()})";
             scrPos.DrawESPText(canvas, this, localPlayer, ESP.Config.ShowDistances, SKPaints.TextExfilESP, label);

@@ -22,12 +22,25 @@ namespace eft_dma_shared.Common.Misc.Config
         /// Visible color for vischeck chams.
         /// </summary>
         [JsonPropertyName("visColor")]
-        public string VisibleColor { get; set; } = SKColor.Parse("FF32D42D").ToString();
-
+        public string VisibleColor { get; set; } = SKColor.Parse("FF32CD32").ToString(); // LimeGreen
+        
         /// <summary>
         /// Invisible color for vischeck chams.
         /// </summary>
         [JsonPropertyName("invisColor")]
-        public string InvisibleColor { get; set; } = SKColor.Parse("FFCD251E").ToString();
+        public string InvisibleColor { get; set; } = SKColor.Parse("FFFF1493").ToString(); // Pink
+        
+        /// <summary>
+        /// Visible color for vischeck chams.
+        /// </summary>
+        [JsonPropertyName("visColorPMC")]
+        public string VisibleColorPMC { get; set; } = SKColor.Parse("FF1E90FF").ToString(); // Neon Blue
+        
+        /// <summary>
+        /// Invisible color for vischeck chams.
+        /// </summary>
+        [JsonPropertyName("invisColorPMC")]
+        public string InvisibleColorPMC { get; set; } = SKColor.Parse("FFFF0000").ToString(); // Red
+
     }
 }

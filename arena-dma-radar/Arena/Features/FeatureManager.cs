@@ -1,10 +1,10 @@
 ﻿using arena_dma_radar.Arena.Features.MemoryWrites;
 using arena_dma_radar.Arena.GameWorld;
 using arena_dma_radar.UI.Misc;
-using eft_dma_shared.Common.Misc;
 using eft_dma_shared.Common.DMA;
 using eft_dma_shared.Common.DMA.ScatterAPI;
 using eft_dma_shared.Common.Features;
+using eft_dma_shared.Common.Misc.Commercial;
 using eft_dma_shared.Common.Unity.LowLevel;
 using eft_dma_shared.Common.Unity.LowLevel.Hooks;
 

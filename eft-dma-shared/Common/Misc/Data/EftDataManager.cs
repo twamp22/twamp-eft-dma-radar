@@ -1,5 +1,4 @@
-﻿using eft_dma_shared.Common.Misc.Data.TarkovMarket;
-using eft_dma_shared.Common.UI;
+﻿using eft_dma_shared.Common.Misc.Commercial;
 using System.Collections.Frozen;
 using System.Reflection;
 using System.Text;
@@ -33,15 +32,11 @@ namespace eft_dma_shared.Common.Misc.Data
         /// <summary>
         /// Call to start LoneDataManager Module. ONLY CALL ONCE.
         /// </summary>
-        /// <param name="loading">Loading UI Form.</param>
-        /// <param name="defaultOnly">True if you want to load cached/default data only.</param>
-        /// <returns></returns>
-        /// <exception cref="ApplicationException"></exception>
-        public static async Task ModuleInitAsync(LoadingForm loading, bool defaultOnly = false)
+        public static async Task ModuleInitAsync()
         {
             try
             {
-                var data = await GetDataAsync(loading, defaultOnly);
+                var data = await GetDataAsync();
                 AllItems = data.Items.Where(x => !x.Tags?.Contains("Static Container") ?? false)
                     .DistinctBy(x => x.BsgId, StringComparer.OrdinalIgnoreCase)
                     .ToDictionary(k => k.BsgId, v => v, StringComparer.OrdinalIgnoreCase)
@@ -69,15 +64,13 @@ namespace eft_dma_shared.Common.Misc.Data
         /// Loads Market data via several possible methods (cached,web,embedded resource).
         /// </summary>
         /// <returns>Collection of TarkovMarketItems.</returns>
-        private static async Task<TarkovMarketData> GetDataAsync(LoadingForm loading, bool defaultOnly)
+        private static async Task<TarkovMarketData> GetDataAsync()
         {
             TarkovMarketData data;
             string json = null;
-            if (!defaultOnly &&
-                (!File.Exists(_dataFile) ||
-            File.GetLastWriteTime(_dataFile).AddHours(4) < DateTime.Now)) // only update every 4h
+            if (!File.Exists(_dataFile) ||
+            File.GetLastWriteTime(_dataFile).AddHours(4) < DateTime.Now) // only update every 4h
             {
-                loading.UpdateStatus("Getting Updated Tarkov.Dev Data...", loading.PercentComplete);
                 json = await GetUpdatedDataJsonAsync();
                 if (json is not null)
                 {
@@ -89,50 +82,31 @@ namespace eft_dma_shared.Common.Misc.Data
                 PropertyNameCaseInsensitive = true,
                 NumberHandling = JsonNumberHandling.AllowReadingFromString
             };
-            if (json is null && File.Exists(_dataFile))
-            {
-                json = await File.ReadAllTextAsync(_dataFile);
-            }
-            json ??= await GetDefaultDataAsync();
-            try
-            {
-                data = JsonSerializer.Deserialize<TarkovMarketData>(json, jsonOptions);
-            }
-            catch (JsonException)
-            {
-                File.Delete(_dataFile); // Delete data if json is corrupt.
-                throw;
-            }
+            json ??= await File.ReadAllTextAsync(_dataFile);
+            data = JsonSerializer.Deserialize<TarkovMarketData>(json, jsonOptions);
             ArgumentNullException.ThrowIfNull(data, nameof(data));
             return data;
-        }
-
-        private static async Task<string> GetDefaultDataAsync()
-        {
-            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("eft-dma-shared.DEFAULT_DATA.json"))
-            {
-                var data = new byte[stream!.Length];
-                await stream.ReadExactlyAsync(data);
-                return Encoding.UTF8.GetString(data);
-            }
         }
 
         /// <summary>
         /// Contacts the Loot Server for an updated Loot List.
         /// </summary>
         /// <returns>Json string of Loot List.</returns>
+        [Obfuscation(Feature = "Virtualization", Exclude = false)]
         private static async Task<string> GetUpdatedDataJsonAsync()
         {
             try
             {
-                return await TarkovMarketJob.GetUpdatedMarketDataAsync();
+                using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("eft-dma-shared.DEFAULT_DATA.json"))
+                {
+                    var data = new byte[stream!.Length];
+                    await stream.ReadExactlyAsync(data);
+                    return Encoding.UTF8.GetString(data);
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"WARNING: Failed to retrieve updated Tarkov Market Data. Will use backup source(s).\n\n{ex}",
-                    nameof(EftDataManager),
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
+                MessageBox.Show("ERROR getting updated Data File. Will use old file (if possible): " + ex.ToString());
                 return null;
             }
         }

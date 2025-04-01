@@ -1,4 +1,4 @@
-﻿using eft_dma_shared.Common.Misc;
+﻿using eft_dma_shared.Common.Misc.Commercial;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 

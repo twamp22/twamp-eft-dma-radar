@@ -3,6 +3,7 @@ using arena_dma_radar.UI.Misc;
 
 namespace arena_dma_radar.UI.ColorPicker.Radar
 {
+    [Obfuscation(Exclude = true, Feature = "renaming")]
     public enum RadarColorOption
     {
         LocalPlayer,

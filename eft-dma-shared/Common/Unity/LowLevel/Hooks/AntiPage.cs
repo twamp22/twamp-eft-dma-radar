@@ -1,5 +1,6 @@
-﻿using eft_dma_shared.Common.Misc;
-using eft_dma_shared.Common.DMA;
+﻿using eft_dma_shared.Common.DMA;
+using eft_dma_shared.Common.Misc;
+using eft_dma_shared.Common.Misc.Commercial;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -136,6 +137,7 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
         /// Get the shellcode for the AntiPage function.
         /// </summary>
         /// <returns></returns>
+        [Obfuscation(Feature = "Virtualization", Exclude = false)]
         private static byte[] GetShellCode()
         {
             return new byte[]

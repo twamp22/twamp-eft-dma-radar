@@ -1,4 +1,5 @@
 ﻿using eft_dma_shared.Common.Misc;
+using eft_dma_shared.Common.Misc.Commercial;
 using eft_dma_shared.Common.Unity.LowLevel.Hooks;
 using eft_dma_shared.Common.Unity.LowLevel.Types;
 using SkiaSharp;
@@ -14,22 +15,65 @@ namespace eft_dma_shared.Common.Unity.LowLevel
     public static class ChamsManager
     {
         private static readonly Stopwatch _rateLimit = new();
+        public static IReadOnlyList<AssetBundleInfo> Bundles => _bundles;
         private static readonly IReadOnlyList<AssetBundleInfo> _bundles = new List<AssetBundleInfo>()
         {
             new AssetBundleInfo()
             {
                 BundleName = "visibilitycheck.bundle",
                 ShaderName = "visibilitycheck.shader",
-                Type = ChamsMode.VisCheck,
-                HasInvisibleColor = true
+                Type = ChamsMode.VisCheckGlow,
+                HasInvisibleColor = true,
+                PlayerT = "AI"
             },
             new AssetBundleInfo()
             {
                 BundleName = "visible.bundle",
                 ShaderName = "visible.shader",
                 Type = ChamsMode.Visible,
-                HasInvisibleColor = false
-            }
+                HasInvisibleColor = false,
+                PlayerT = "AI"
+            },
+            new AssetBundleInfo()
+            {
+                BundleName = "vischeckflat.bundle",
+                ShaderName = "vischeckflat.shader",
+                Type = ChamsMode.VisCheckFlat,
+                HasInvisibleColor = true,
+                PlayerT = "AI"
+            },
+            new AssetBundleInfo()
+            {
+                BundleName = "wireframe.bundle",
+                ShaderName = "wireframe.shader",
+                Type = ChamsMode.VisCheckWireframe,
+                HasInvisibleColor = true,
+                PlayerT = "AI"
+            },
+            new AssetBundleInfo()
+            {
+                BundleName = "vicheckglowpmc.bundle",
+                ShaderName = "vicheckglowpmc.shader",
+                Type = ChamsMode.VisCheckGlow,
+                HasInvisibleColor = true,
+                PlayerT = "PMC"
+            },
+            new AssetBundleInfo()
+            {
+                BundleName = "vischeckflatpmc.bundle",
+                ShaderName = "vischeckflatpmc.shader",
+                Type = ChamsMode.VisCheckFlat,
+                HasInvisibleColor = true,
+                PlayerT = "PMC"
+            },
+            new AssetBundleInfo()
+            {
+                BundleName = "wireframepmc.bundle",
+                ShaderName = "wireframepmc.shader",
+                Type = ChamsMode.VisCheckWireframe,
+                HasInvisibleColor = true,
+                PlayerT = "PMC"
+            }           
         };
 
         /// <summary>
@@ -37,12 +81,12 @@ namespace eft_dma_shared.Common.Unity.LowLevel
         /// </summary>
         private static LowLevelCache Cache => SharedProgram.Config.LowLevelCache;
 
-        private static readonly ConcurrentDictionary<ChamsMode, ChamsMaterial> _materials = new();
+        private static readonly ConcurrentDictionary<(ChamsMode, string), ChamsMaterial> _materials = new();
+
         /// <summary>
         /// Currently set chams material.
         /// </summary>
-        public static IReadOnlyDictionary<ChamsMode, ChamsMaterial> Materials => _materials;
-
+        public static IReadOnlyDictionary<(ChamsMode, string), ChamsMaterial> Materials => _materials;
 
         /// <summary>
         /// Load the Asset Bundle from resources.
@@ -51,19 +95,56 @@ namespace eft_dma_shared.Common.Unity.LowLevel
         private static IReadOnlyList<AssetBundle> LoadAssetBundlesFromResources()
         {
             var results = new List<AssetBundle>();
+            var assembly = Assembly.GetExecutingAssembly();
+            var resourceNames = assembly.GetManifestResourceNames();
+            var loadedBundles = new HashSet<string>();  // Track loaded bundles
+
+            LoneLogging.WriteLine("Available Embedded Resources:\n" + string.Join("\n", resourceNames));
+
             foreach (var bundle in _bundles)
             {
-                byte[] resource;
-                using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"eft-dma-shared.{bundle.BundleName}"))
+                try
                 {
-                    resource = new byte[stream!.Length];
-                    stream.ReadExactly(resource);
+                    if (loadedBundles.Contains(bundle.BundleName))
+                    {
+                        LoneLogging.WriteLine($"[LoadBundle] Skipping duplicate load: {bundle.BundleName}");
+                        continue; // Skip already loaded bundle
+                    }
+
+                    byte[] resource;
+                    string resourcePath = resourceNames.FirstOrDefault(name => name.EndsWith(bundle.BundleName));
+
+                    if (resourcePath == null)
+                    {
+                        LoneLogging.WriteLine($"[ERROR] Missing embedded resource: {bundle.BundleName}");
+                        continue;
+                    }
+
+                    using (var stream = assembly.GetManifestResourceStream(resourcePath))
+                    {
+                        if (stream == null)
+                        {
+                            LoneLogging.WriteLine($"[ERROR] Failed to get stream for: {resourcePath}");
+                            continue;
+                        }
+
+                        resource = new byte[stream.Length];
+                        stream.Read(resource, 0, resource.Length);
+                    }
+
+                    results.Add(new AssetBundle()
+                    {
+                        Info = bundle,
+                        Bundle = resource
+                    });
+
+                    loadedBundles.Add(bundle.BundleName); // Mark as loaded
+                    LoneLogging.WriteLine($"[LoadBundle] Successfully loaded {bundle.BundleName}");
                 }
-                results.Add(new AssetBundle()
+                catch (Exception ex)
                 {
-                    Info = bundle,
-                    Bundle = resource
-                });
+                    LoneLogging.WriteLine($"[ERROR] Failed to load {bundle.BundleName}: {ex.Message}");
+                }
             }
             return results;
         }
@@ -87,6 +168,8 @@ namespace eft_dma_shared.Common.Unity.LowLevel
 
                 SKColor visibleColor = SKColor.Parse(SharedProgram.Config.ChamsConfig.VisibleColor);
                 SKColor invisibleColor = SKColor.Parse(SharedProgram.Config.ChamsConfig.InvisibleColor);
+                SKColor visibleColorPMC = SKColor.Parse(SharedProgram.Config.ChamsConfig.VisibleColorPMC);
+                SKColor invisibleColorPMC = SKColor.Parse(SharedProgram.Config.ChamsConfig.InvisibleColorPMC);
 
                 ulong monoDomain = (ulong)MonoLib.MonoRootDomain.Get();
                 if (!monoDomain.IsValidVirtualAddress())
@@ -111,6 +194,7 @@ namespace eft_dma_shared.Common.Unity.LowLevel
                 using var shaderProperty_InvisibleColorMem = shaderProperty_InvisibleColorMonoStr.ToRemoteBytes();
 
                 var bundles = LoadAssetBundlesFromResources();
+                
                 foreach (var bundle in bundles)
                 {
                     bool assetBundleLoaded = false;
@@ -118,20 +202,33 @@ namespace eft_dma_shared.Common.Unity.LowLevel
                     {
                         var assetBundleMonoByteArr = new MonoByteArray(bundle.Bundle);
                         var assetBundleMem = assetBundleMonoByteArr.ToRemoteBytes(); // Don't dispose on failure
-
+                        string bundleName = bundle.Info.BundleName;
                         var assetBundleMonoStr = new MonoString(bundle.Info.ShaderName);
                         using var shaderNameMem = assetBundleMonoStr.ToRemoteBytes();
 
-                        assetBundleLoaded = AssetFactory.LoadBundle(assetBundleMem, shaderNameMem, shaderTypeObject);
+                        assetBundleLoaded = AssetFactory.LoadBundle(assetBundleMem, shaderNameMem, shaderTypeObject, bundleName);
                         if (!assetBundleLoaded)
-                            throw new Exception("Failed to load the asset bundle!");
+                            throw new Exception($"Failed to load the asset bundle!{bundle.Bundle}");
 
                         using var chamsColorMem = new RemoteBytes(SizeChecker<UnityColor>.Size);
                         var material = CreateChamsMaterial(monoDomain, materialClass, shaderProperty_InvisibleColorMem, shaderProperty_VisibleColorMem, bundle.Info.HasInvisibleColor);
 
-                        NativeMethods.SetMaterialColor(chamsColorMem, material.Address, material.ColorVisible, new UnityColor(visibleColor));
-                        NativeMethods.SetMaterialColor(chamsColorMem, material.Address, material.ColorInvisible, new UnityColor(invisibleColor));
-                        _materials[bundle.Info.Type] = material;
+                        if (bundle.Info.PlayerT == "PMC") // Apply PMC/Boss Colors
+                        {
+                            NativeMethods.SetMaterialColor(chamsColorMem, material.Address, material.ColorVisible, new UnityColor(visibleColorPMC));
+                            NativeMethods.SetMaterialColor(chamsColorMem, material.Address, material.ColorInvisible, new UnityColor(invisibleColorPMC));
+                        }
+                        else // Apply AI Colors
+                        {
+                            NativeMethods.SetMaterialColor(chamsColorMem, material.Address, material.ColorVisible, new UnityColor(visibleColor));
+                            NativeMethods.SetMaterialColor(chamsColorMem, material.Address, material.ColorInvisible, new UnityColor(invisibleColor));
+                        }
+                        foreach (var kvp in _materials)
+                        {
+                            LoneLogging.WriteLine($"[DEBUG] Materials Loaded: {kvp.Key} -> InstanceID: {kvp.Value.InstanceID}");
+                        }
+                        _materials[(bundle.Info.Type, bundle.Info.PlayerT)] = material;
+
                     }
                     finally
                     {
@@ -165,15 +262,20 @@ namespace eft_dma_shared.Common.Unity.LowLevel
                 ulong codeCave = NativeHook.CodeCave;
                 if (!codeCave.IsValidVirtualAddress())
                     return false;
-                if (Cache.CodeCave == codeCave && !Cache.ChamsMaterialIds.IsEmpty)
+
+                if (Cache.CodeCave.Deobfuscate() == codeCave && !Cache.ChamsMaterialIds.IsEmpty)
                 {
                     foreach (var kvp in Cache.ChamsMaterialIds)
                     {
-                        _materials[(ChamsMode)kvp.Key] = new()
+                        int modeValue = kvp.Key / 10;
+                        string playerT = kvp.Key % 10 == 1 ? "PMC" : "AI";
+
+                        _materials[((ChamsMode)modeValue, playerT)] = new()
                         {
-                            InstanceID = kvp.Value
+                            InstanceID = kvp.Value.Deobfuscate()
                         };
                     }
+
                     LoneLogging.WriteLine("[CHAMS MANAGER] TryInitializeFromCache() -> OK");
                     return true;
                 }
@@ -183,16 +285,19 @@ namespace eft_dma_shared.Common.Unity.LowLevel
             }
             return false;
         }
-
         private static void CacheMaterialIds()
         {
             foreach (var kvp in _materials)
             {
-                Cache.ChamsMaterialIds[(int)kvp.Key] = kvp.Value.InstanceID;
+                var (mode, playerT) = kvp.Key; // Extract tuple values
+
+                // Create a unique key by combining mode and playerT
+                int uniqueKey = (int)mode * 10 + (playerT == "PMC" ? 1 : 0);
+
+                Cache.ChamsMaterialIds[uniqueKey] = kvp.Value.InstanceID.Obfuscate();
             }
             _ = Cache.SaveAsync();
         }
-
         private static ChamsMaterial CreateChamsMaterial(ulong monoDomain, ulong materialClass, ulong invisibleColorMem, ulong visibleColorMem, bool hasInvisibleColor)
         {
             ulong materialAddress = AssetFactory.CreateMaterial(monoDomain, materialClass);
@@ -230,7 +335,6 @@ namespace eft_dma_shared.Common.Unity.LowLevel
             }
             throw new Exception("[CHAMS MANAGER]: CreateChamsMaterial() -> Failed to create chams material!");
         }
-
         public static void Reset()
         {
             _materials.Clear();
@@ -244,15 +348,18 @@ namespace eft_dma_shared.Common.Unity.LowLevel
             public AssetBundleInfo Info { get; init; }
             public byte[] Bundle { get; init; }
         }
-
-        private sealed class AssetBundleInfo
+        public sealed class AssetBundleInfo
         {
             public string BundleName { get; init; }
             public string ShaderName { get; init; }
-            public ChamsMode Type { get; init; }
+            public ChamsManager.ChamsMode Type { get; init; }
+            public string PlayerT { get; init; }
             public bool HasInvisibleColor { get; init; }
+        }       
+        public static AssetBundleInfo? GetBundleForType(ChamsMode mode, string playerTypeCategory)
+        {
+            return _bundles.FirstOrDefault(b => b.Type == mode && b.PlayerT == playerTypeCategory);
         }
-
         public sealed class ChamsMaterial
         {
             /// <summary>
@@ -272,22 +379,13 @@ namespace eft_dma_shared.Common.Unity.LowLevel
             /// </summary>
             public int ColorInvisible { get; init; }
         }
-
         public enum ChamsMode : int
         {
-            /// <summary>
-            /// Basic Chams (Visible)
-            /// Does not use Advanced Chams features.
-            /// </summary>
             Basic = 1,
-            /// <summary>
-            /// VisCheck Chams
-            /// </summary>
-            VisCheck = 2,
-            /// <summary>
-            /// Visilbe Chams
-            /// </summary>
-            Visible = 3
+            VisCheckGlow = 2,
+            Visible = 3,
+            VisCheckFlat = 4,
+            VisCheckWireframe = 5
         }
 
         #endregion

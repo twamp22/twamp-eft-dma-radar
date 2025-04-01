@@ -1,5 +1,4 @@
-﻿using eft_dma_shared.Common.Misc;
-using DarkModeForms;
+﻿using DarkModeForms;
 using eft_dma_radar.Features.MemoryWrites.UI;
 using eft_dma_radar.Tarkov.API;
 using eft_dma_radar.Tarkov.EFTPlayer;
@@ -11,6 +10,7 @@ using eft_dma_radar.Tarkov.GameWorld;
 using eft_dma_radar.Tarkov.GameWorld.Exits;
 using eft_dma_radar.Tarkov.GameWorld.Explosives;
 using eft_dma_radar.Tarkov.Loot;
+using eft_dma_radar.Tarkov.WebRadar;
 using eft_dma_radar.UI.ColorPicker;
 using eft_dma_radar.UI.ColorPicker.ESP;
 using eft_dma_radar.UI.ColorPicker.Radar;
@@ -21,7 +21,10 @@ using eft_dma_radar.UI.Misc;
 using eft_dma_radar.UI.SKWidgetControl;
 using eft_dma_shared.Common.ESP;
 using eft_dma_shared.Common.Features;
+using eft_dma_shared.Common.Features.MemoryWrites;
 using eft_dma_shared.Common.Maps;
+using eft_dma_shared.Common.Misc;
+using eft_dma_shared.Common.Misc.Commercial;
 using eft_dma_shared.Common.Misc.Data;
 using eft_dma_shared.Common.Unity;
 using eft_dma_shared.Common.Unity.LowLevel;
@@ -30,7 +33,6 @@ using System.Timers;
 using static eft_dma_radar.UI.Hotkeys.HotkeyManager;
 using static eft_dma_radar.UI.Hotkeys.HotkeyManager.HotkeyActionController;
 using Timer = System.Timers.Timer;
-using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 
 namespace eft_dma_radar.UI.Radar
 {
@@ -55,6 +57,7 @@ namespace eft_dma_radar.UI.Radar
         private Vector2 _mapPanPosition;
         private EspWidget _aimview;
         private PlayerInfoWidget _playerInfo;
+        private LootInfoWidget _lootInfo;
 
         /// <summary>
         /// Main UI/Application Config.
@@ -244,6 +247,8 @@ namespace eft_dma_radar.UI.Radar
             var inRaid = InRaid; // cache bool
             var localPlayer = LocalPlayer; // cache ref to current player
             var canvas = e.Surface.Canvas; // get Canvas reference to draw on
+            var mousePos = GetMousePosition(); // Implement this to track mouse position
+            var mouseClicked = CheckMouseClick();
             try
             {
                 SetFPS(inRaid);
@@ -396,11 +401,14 @@ namespace eft_dma_radar.UI.Radar
                         }
                     } // End Grp Connect
 
+                    DrawSelectedLootLine(canvas, localPlayer, mapParams);
+
                     if (allPlayers is not null &&
                         checkBox_ShowInfoTab.Checked) // Players Overlay
                         _playerInfo?.Draw(canvas, localPlayer, allPlayers);
                     closestToMouse?.DrawMouseover(canvas, mapParams, localPlayer);// draw tooltip for object the mouse is closest to
-
+                    if (checkBox_ShowLootTab.Checked) // Loot Overlay
+                        _lootInfo?.Draw(canvas, localPlayer, mousePos, mouseClicked);
                     if (Config.ESPWidgetEnabled)
                         _aimview?.Draw(canvas);
                 }
@@ -420,6 +428,36 @@ namespace eft_dma_radar.UI.Radar
             {
                 LoneLogging.WriteLine($"CRITICAL RENDER ERROR: {ex}");
             }
+        }
+        private void DrawSelectedLootLine(SKCanvas canvas, Player localPlayer, LoneMapParams mapParams)
+        {
+            var selectedLoot = _lootInfo?.GetSelectedLoot();
+            if (selectedLoot == null) return; // No selected loot, no line
+
+            var playerPos = localPlayer.Position.ToMapPos(mapParams.Map).ToZoomedPos(mapParams);
+            var lootPos = selectedLoot.Position.ToMapPos(mapParams.Map).ToZoomedPos(mapParams);
+
+            using var paint = new SKPaint
+            {
+                Color = SKColors.Red,
+                StrokeWidth = 3f,
+                Style = SKPaintStyle.Stroke,
+                IsAntialias = true
+            };
+
+            canvas.DrawLine(playerPos, lootPos, paint);
+        }
+        private SKPoint GetMousePosition()
+        {
+            var mouse = skglControl_Radar.PointToClient(Cursor.Position);
+            float dpiScaleX = skglControl_Radar.Width / (float)skglControl_Radar.ClientSize.Width;
+            float dpiScaleY = skglControl_Radar.Height / (float)skglControl_Radar.ClientSize.Height;
+
+            return new SKPoint(mouse.X * dpiScaleX, mouse.Y * dpiScaleY);
+        }
+        private bool CheckMouseClick()
+        {
+            return (Control.MouseButtons & MouseButtons.Left) != 0;
         }
 
         private readonly Stopwatch _statusSw = Stopwatch.StartNew();
@@ -489,7 +527,28 @@ namespace eft_dma_radar.UI.Radar
                 }
             }
         }
-
+        private void checkBox_hideRaidcode_CheckedChanged(object sender, EventArgs e)
+        {
+            // Update config
+            Program.Config.MemWrites.HideRaidCode = checkBox_hideRaidcode.Checked;
+        
+            // Enable or disable the feature
+            MemPatchFeature<HideRaidCode>.Instance.Enabled = checkBox_hideRaidcode.Checked;
+        
+            // Apply the changes immediately
+            MemPatchFeature<HideRaidCode>.Instance.TryApply();
+        }
+        private void checkBox_streamerMode_CheckedChanged(object sender, EventArgs e)
+        {
+            // Update config
+            Program.Config.MemWrites.StreamerMode = checkBox_streamerMode.Checked;
+        
+            // Enable or disable the feature
+            MemPatchFeature<StreamerMode>.Instance.Enabled = checkBox_streamerMode.Checked;
+        
+            // Apply the changes immediately
+            MemPatchFeature<StreamerMode>.Instance.TryApply();
+        }
         private void checkBox_LootWishlist_CheckedChanged(object sender, EventArgs e)
         {
             Config.LootWishlist = checkBox_LootWishlist.Checked;
@@ -516,7 +575,31 @@ namespace eft_dma_radar.UI.Radar
             if (radioButton_Loot_VendorPrice.Checked)
                 Config.LootPriceMode = LootPriceMode.Trader;
         }
+        private void textBox_VischeckVisColorPMC_TextChanged(object sender, EventArgs e)
+        {
+            Chams.Config.VisibleColorPMC = textBox_VischeckVisColorPMC.Text;
+        }
 
+        private void textBox_VischeckInvisColorPMC_TextChanged(object sender, EventArgs e)
+        {
+            Chams.Config.InvisibleColorPMC = textBox_VischeckInvisColorPMC.Text;
+        }
+
+        private void button_VischeckVisColorPickPMC_Click(object sender, EventArgs e)
+        {
+            if (colorPicker1.ShowDialog() is DialogResult.OK)
+            {
+                textBox_VischeckVisColorPMC.Text = colorPicker1.Color.ToSKColor().ToString();
+            }
+        }
+
+        private void button_VischeckInvisColorPickPMC_Click(object sender, EventArgs e)
+        {
+            if (colorPicker1.ShowDialog() is DialogResult.OK)
+            {
+                textBox_VischeckInvisColorPMC.Text = colorPicker1.Color.ToSKColor().ToString();
+            }
+        }
         private void textBox_VischeckVisColor_TextChanged(object sender, EventArgs e)
         {
             Chams.Config.VisibleColor = textBox_VischeckVisColor.Text;
@@ -577,9 +660,13 @@ namespace eft_dma_radar.UI.Radar
 
         private void ToggleAdvMemwriteFeatures(bool enabled)
         {
-            radioButton_Chams_Vischeck.Enabled = enabled;
+            radioButton_Chams_VisCheckGlow.Enabled = enabled;
+            radioButton_Chams_VischeckFlat.Enabled = enabled;
+            radioButton_Chams_VisCheckWireframe.Enabled = enabled;
             radioButton_Chams_Visible.Enabled = enabled;
             checkBox_AntiPage.Enabled = enabled;
+            checkBox_streamerMode.Enabled = enabled;
+            checkBox_hideRaidcode.Enabled = enabled;
         }
         private void checkBox_FullBright_CheckedChanged(object sender, EventArgs e)
         {
@@ -758,11 +845,27 @@ namespace eft_dma_radar.UI.Radar
                 Chams.Config.Mode = ChamsManager.ChamsMode.Basic;
         }
 
-        private void radioButton_Chams_Vischeck_CheckedChanged(object sender, EventArgs e)
+        private void radioButton_Chams_VisCheckGlow_CheckedChanged(object sender, EventArgs e)
         {
-            var enabled = radioButton_Chams_Vischeck.Checked;
+            var enabled = radioButton_Chams_VisCheckGlow.Checked;
             if (enabled)
-                Chams.Config.Mode = ChamsManager.ChamsMode.VisCheck;
+                Chams.Config.Mode = ChamsManager.ChamsMode.VisCheckGlow;
+            flowLayoutPanel_AdvancedChams.Enabled = enabled;
+        }
+
+        private void radioButton_Chams_VischeckFlat_CheckedChanged(object sender, EventArgs e)
+        {
+            var enabled = radioButton_Chams_VischeckFlat.Checked;
+            if (enabled)
+                Chams.Config.Mode = ChamsManager.ChamsMode.VisCheckFlat;
+            flowLayoutPanel_AdvancedChams.Enabled = enabled;
+        }
+
+        private void radioButton_Chams_VisCheckWireframe_CheckedChanged(object sender, EventArgs e)
+        {
+            var enabled = radioButton_Chams_VisCheckWireframe.Checked;
+            if (enabled)
+                Chams.Config.Mode = ChamsManager.ChamsMode.VisCheckWireframe;
             flowLayoutPanel_AdvancedChams.Enabled = enabled;
         }
 
@@ -922,6 +1025,7 @@ namespace eft_dma_radar.UI.Radar
             // Update Widgets
             _aimview?.SetScaleFactor(newScale);
             _playerInfo?.SetScaleFactor(newScale);
+            _lootInfo?.SetScaleFactor(newScale);
 
             #region UpdatePaints
 
@@ -1574,6 +1678,8 @@ namespace eft_dma_radar.UI.Radar
         {
             toolTip1.SetToolTip(textBox_VischeckVisColor, "Set the VISIBLE color of the Vischeck Chams. Must be set before chams are injected.");
             toolTip1.SetToolTip(textBox_VischeckInvisColor, "Set the INVISIBLE color of the Vischeck Chams. Must be set before chams are injected.");
+            toolTip1.SetToolTip(textBox_VischeckInvisColorPMC, "Set the INVISIBLE color of the Vischeck Chams for PMCs and Bosses. Must be set before chams are injected.");
+            toolTip1.SetToolTip(textBox_VischeckVisColorPMC, "Set the INVISIBLE color of the Vischeck Chams for PMCs and Bosses. Must be set before chams are injected.");
             toolTip1.SetToolTip(button_VischeckVisColorPick, "Set the VISIBLE color of the Vischeck Chams. Must be set before chams are injected.");
             toolTip1.SetToolTip(button_VischeckInvisColorPick, "Set the INVISIBLE color of the Vischeck Chams. Must be set before chams are injected.");
             toolTip1.SetToolTip(checkBox_FastLoadUnload, "Allows you to pack/unpack magazines super fast.");
@@ -1621,6 +1727,8 @@ namespace eft_dma_radar.UI.Radar
                 "Toggles the Quest Helper feature. This will display Items and Zones that you need to pickup/visit for quests that you currently have active.");
             toolTip1.SetToolTip(checkBox_ShowInfoTab,
                 "Toggles the Player Info 'Widget' that gives you information about the players/bosses in your raid. Can be moved.");
+            toolTip1.SetToolTip(checkBox_ShowLootTab,
+                "Toggles the Loot 'Widget' that gives you information about the loot in your raid. Can be moved.");
             toolTip1.SetToolTip(checkBox_GrpConnect,
                 "Connects players that are grouped up via semi-transparent green lines. Does not apply to your own party.");
             toolTip1.SetToolTip(trackBar_AimlineLength, "Sets the Aimline Length for Local Player/Teammates");
@@ -1651,7 +1759,7 @@ namespace eft_dma_radar.UI.Radar
                 "These basic chams will only show when a target is VISIBLE. Cannot change color (always White).");
             toolTip1.SetToolTip(radioButton_Chams_Visible,
                 "These advanced chams will only show when a target is VISIBLE. You can change the color(s).");
-            toolTip1.SetToolTip(radioButton_Chams_Vischeck,
+            toolTip1.SetToolTip(radioButton_Chams_VisCheckGlow,
                 "These advanced chams (vischeck) will show different colors when a target is VISIBLE/INVISIBLE. You can change the color(s).");
             toolTip1.SetToolTip(checkBox_AlwaysDaySunny,
                 "Enables the Always Day/Sunny feature. This sets the In-Raid time to always 12 Noon (day), and sets the weather to sunny/clear.");
@@ -1719,6 +1827,13 @@ namespace eft_dma_radar.UI.Radar
                 "NOTE: It is possible to 're-lock' another target (or the same target) after unlocking.");
             toolTip1.SetToolTip(checkBox_AimRandomBone, "Will select a random aimbot bone after each shot. You can set custom percentage values for body zones.\nNOTE: This will supersede silent aim 'auto bone'.");
             toolTip1.SetToolTip(button_RandomBoneCfg, "Set random bone percentages (must add up to 100%).");
+            toolTip1.SetToolTip(checkBox_WebRadarUPNP, "Attempts to automatically Port Map using UPnP. If disabled, you will need to forward port(s) manually on your Router.");
+            toolTip1.SetToolTip(button_WebRadarStart, "Starts the Web Radar Service.");
+            toolTip1.SetToolTip(label_WebRadarHost, "Sets the IP Address/Hostname for the Web Radar Service to be bound to. Usually your LAN IP.");
+            toolTip1.SetToolTip(label_WebRadarPort, "Sets the Port (TCP) for the Web Radar Service to be bound to. Recommend using a random port between 50000-60000.");
+            toolTip1.SetToolTip(label_WebRadarPassword, "Randomized password for the Web Radar Service. This is used to authenticate with the Web Radar Service.");
+            toolTip1.SetToolTip(label_WebRadarTickRate, "Sets the Server Tickrate for the Web Radar Service. This is how often (per second) the server updates the client with new data.");
+            toolTip1.SetToolTip(linkLabel_WebRadarLink, "Web Radar Link to access the Web Radar Service. You can share this with your friend(s). Click to copy to clipboard.");
             toolTip1.SetToolTip(comboBox_WideLeanMode, "Sets the Wide Lean Mode for the Wide Lean feature.\nHold = Must press and hold the hotkey to remain leaned.\nToggle = Must press the hotkey once to toggle on/off.");
             toolTip1.SetToolTip(trackBar_WideLeanAmt, "Sets the amount of lean to apply when using the Wide Lean feature. You may need to lower this if shots fail.");
             toolTip1.SetToolTip(label_WideLean, "Wide Lean allows you to move your weapon left/right/up. This can be useful for peeking corners with silent aim. Set your hotkey(s) in Hotkey Manager.");
@@ -1757,6 +1872,12 @@ namespace eft_dma_radar.UI.Radar
             toolTip1.SetToolTip(radioButton_Loot_VendorPrice, "Loot prices use the highest trader price for displayed loot items.");
             toolTip1.SetToolTip(checkBox_AntiPage, "Attempts to prevent memory paging out. This can help if you are experiencing 'paging out' (see the FAQ in Discord).\n" +
                 "For best results start the Radar Client BEFORE opening the Game.");
+            toolTip1.SetToolTip(checkBox_hideRaidcode, "Hides the Raid Code from displaying in the bottom left corner of the Game. Send your Cheating clips safely!");
+            toolTip1.SetToolTip(checkBox_streamerMode, "Enables Streamer Mode. This will hide your player name, change your level and other things from displaying in the Game:\n" +
+                "- To disable uncheck the box and restart game\n" +
+                "- Uses shellcode so it is a more risky feature.\n" +
+                "- Only Spoofs names, level etc locally.\n" +
+                "\n\nWARNING: These features use a riskier injection technique. Use at your own risk.");
             toolTip1.SetToolTip(checkBox_AIAimlines, "Enables dynamic aimlines for AI Players. When you are being aimed at the aimlines will extend.");
             toolTip1.SetToolTip(checkBox_LootWishlist, "Tracks loot on your account's Loot Wishlist (Manual Adds Only, does not work for Automatically Added Items).");
             toolTip1.SetToolTip(checkedListBox_QuestHelper, "Active Quest List (populates once you are in raid). Uncheck a quest to untrack it.");
@@ -1783,6 +1904,8 @@ namespace eft_dma_radar.UI.Radar
                 UIScale);
             _playerInfo = new PlayerInfoWidget(skglControl_Radar, Config.Widgets.PlayerInfoLocation,
                 Config.Widgets.PlayerInfoMinimized, UIScale);
+            _lootInfo = new LootInfoWidget(skglControl_Radar, Config.Widgets.LootInfoLocation,
+                Config.Widgets.LootInfoMinimized, UIScale);
         }
 
         private void SetMemWriteFeatures()
@@ -1795,6 +1918,8 @@ namespace eft_dma_radar.UI.Radar
             checkBox_EnableMemWrite.CheckedChanged += checkBox_EnableMemWrite_CheckedChanged;
             checkBox_AdvancedMemWrites.CheckedChanged += checkBox_AdvancedMemWrites_CheckedChanged;
             /// Set Features
+            checkBox_hideRaidcode.Checked = MemPatchFeature<HideRaidCode>.Instance.Enabled;
+            checkBox_streamerMode.Checked = MemPatchFeature<StreamerMode>.Instance.Enabled;
             checkBox_AntiPage.Checked = Config.MemWrites.AntiPage;
             checkBox_EnableMemWrite.Checked = MemWrites.Enabled;
             checkBox_NoRecoilSway.Checked = MemWriteFeature<NoRecoil>.Instance.Enabled;
@@ -1842,11 +1967,17 @@ namespace eft_dma_radar.UI.Radar
                 case ChamsManager.ChamsMode.Basic:
                     radioButton_Chams_Basic.Checked = true;
                     break;
-                case ChamsManager.ChamsMode.VisCheck:
-                    radioButton_Chams_Vischeck.Checked = true;
+                case ChamsManager.ChamsMode.VisCheckGlow:
+                    radioButton_Chams_VisCheckGlow.Checked = true;
                     break;
                 case ChamsManager.ChamsMode.Visible:
                     radioButton_Chams_Visible.Checked = true;
+                    break;
+                case ChamsManager.ChamsMode.VisCheckFlat:
+                    radioButton_Chams_VischeckFlat.Checked = true;
+                    break;
+                case ChamsManager.ChamsMode.VisCheckWireframe:
+                    radioButton_Chams_VisCheckWireframe.Checked = true;
                     break;
             }
         }
@@ -1964,6 +2095,7 @@ namespace eft_dma_radar.UI.Radar
                     top + labelHeight + spacing);
                 canvas.DrawRect(bgRect, SKPaints.PaintTransparentBacker);
                 var textLoc = new SKPoint(clientArea.Width / 2, top + labelHeight);
+                canvas.DrawText(label, textLoc, SKPaints.TextStatusSmall);
             }
             catch (Exception ex)
             {
@@ -1990,10 +2122,16 @@ namespace eft_dma_radar.UI.Radar
             checkBox_LootWishlist.Checked = Config.LootWishlist;
             checkBox_QuestHelper_Enabled.Checked = Config.QuestHelper.Enabled;
             checkBox_ShowInfoTab.Checked = Config.ShowInfoTab;
+            checkBox_ShowLootTab.Checked = Config.ShowLootTab;
             checkBox_HideCorpses.Checked = Config.HideCorpses;
             checkBox_ShowMines.Checked = Config.ShowMines;
             checkBox_TeammateAimlines.Checked = Config.TeammateAimlines;
             checkBox_AIAimlines.Checked = Config.AIAimlines;
+            checkBox_WebRadarUPNP.Checked = Config.WebRadar.UPnP;
+            textBox_WebRadarBindIP.Text = Config.WebRadar.IP;
+            textBox_WebRadarPort.Text = Config.WebRadar.Port;
+            textBox_WebRadarTickRate.Text = Config.WebRadar.TickRate;
+            textBox_WebRadarPassword.Text = WebRadarServer.Password;
             checkBox_Aimview.Checked = Config.ESPWidgetEnabled;
             trackBar_UIScale.Value = (int)Math.Round(Config.UIScale * 100);
             trackBar_MaxDist.Value = (int)Config.MaxDistance;
@@ -2002,6 +2140,9 @@ namespace eft_dma_radar.UI.Radar
             textBox_ResHeight.Text = Config.MonitorHeight.ToString();
             textBox_VischeckVisColor.Text = Chams.Config.VisibleColor;
             textBox_VischeckInvisColor.Text = Chams.Config.InvisibleColor;
+            textBox_VischeckInvisColorPMC.Text = Chams.Config.InvisibleColorPMC;
+            textBox_VischeckVisColorPMC.Text = Chams.Config.VisibleColorPMC;
+
             CameraManagerBase.UpdateViewportRes();
             LoadESPConfig();
             InitializeContainers();
@@ -2131,8 +2272,11 @@ namespace eft_dma_radar.UI.Radar
                 Config.Widgets.AimviewMinimized = _aimview.Minimized;
                 Config.Widgets.PlayerInfoLocation = _playerInfo.Rectangle;
                 Config.Widgets.PlayerInfoMinimized = _playerInfo.Minimized;
+                Config.Widgets.LootInfoLocation = _lootInfo.Rectangle;
+                Config.Widgets.LootInfoMinimized = _lootInfo.Minimized;
                 Config.AimLineLength = trackBar_AimlineLength.Value;
                 Config.ShowInfoTab = checkBox_ShowInfoTab.Checked;
+                Config.ShowLootTab = checkBox_ShowLootTab.Checked;
                 Config.HideNames = checkBox_HideNames.Checked;
                 Config.ShowMines = checkBox_ShowMines.Checked;
                 Config.ConnectGroups = checkBox_GrpConnect.Checked;
@@ -2189,6 +2333,12 @@ namespace eft_dma_radar.UI.Radar
         /// </summary>
         protected override void OnMouseWheel(MouseEventArgs e)
         {
+            if (_lootInfo?.IsMouseOverWidget(GetMousePosition()) == true)
+            {
+                _lootInfo.OnMouseScroll(e.Delta);
+                return; // Prevents map zooming when scrolling over loot widget
+            }
+
             if (tabControl1.SelectedIndex == 0) // Main Radar Tab should be open
             {
                 if (e.Delta > 0) // mouse wheel up (zoom in)
@@ -2244,6 +2394,8 @@ namespace eft_dma_radar.UI.Radar
             toggleNames.HotkeyStateChanged += ToggleNames_HotkeyStateChanged;
             var toggleInfo = new HotkeyActionController("Toggle Game Info Tab");
             toggleInfo.HotkeyStateChanged += ToggleInfo_HotkeyStateChanged;
+            var toggleLootInfo = new HotkeyActionController("Toggle Loot Info Tab");
+            toggleLootInfo.HotkeyStateChanged += ToggleLootInfo_HotkeyStateChanged;
             var engageAimbot = new HotkeyActionController("Engage Aimbot");
             engageAimbot.HotkeyStateChanged += EngageAimbot_HotkeyStateChanged;
             var toggleAimbotBone = new HotkeyActionController("Toggle Aimbot Bone");
@@ -2291,6 +2443,7 @@ namespace eft_dma_radar.UI.Radar
             HotkeyManager.RegisterActionController(toggleESPWidget);
             HotkeyManager.RegisterActionController(toggleNames);
             HotkeyManager.RegisterActionController(toggleInfo);
+            HotkeyManager.RegisterActionController(toggleLootInfo);
             HotkeyManager.RegisterActionController(engageAimbot);
             HotkeyManager.RegisterActionController(toggleAimbotBone);
             HotkeyManager.RegisterActionController(toggleAimbotMode);
@@ -2532,6 +2685,12 @@ namespace eft_dma_radar.UI.Radar
         {
             if (e.State)
                 checkBox_ShowInfoTab.Checked = !checkBox_ShowInfoTab.Checked;
+        }
+
+        private void ToggleLootInfo_HotkeyStateChanged(object sender, HotkeyEventArgs e)
+        {
+            if (e.State)
+                checkBox_ShowLootTab.Checked = !checkBox_ShowLootTab.Checked;
         }
 
         private void ToggleNames_HotkeyStateChanged(object sender, HotkeyEventArgs e)
@@ -3502,6 +3661,89 @@ namespace eft_dma_radar.UI.Radar
 
         #endregion
 
+        #region Web Radar
+
+        /// <summary>
+        /// Startup Web Radar. Can only be done once for the program lifetime.
+        /// </summary>
+        private async void StartWebRadar()
+        {
+            button_WebRadarStart.Enabled = false;
+            checkBox_WebRadarUPNP.Enabled = false;
+            textBox_WebRadarTickRate.Enabled = false;
+            textBox_WebRadarBindIP.Enabled = false;
+            textBox_WebRadarPort.Enabled = false;
+            button_WebRadarStart.Text = "Starting...";
+            try
+            {
+                var tickRate = TimeSpan.FromMilliseconds(1000d / int.Parse(textBox_WebRadarTickRate.Text.Trim()));
+                string bindIP = textBox_WebRadarBindIP.Text.Trim();
+                int port = int.Parse(textBox_WebRadarPort.Text.Trim());
+                var externalIP = await WebRadarServer.GetExternalIPAsync();
+                await WebRadarServer.StartAsync(bindIP, port, tickRate, checkBox_WebRadarUPNP.Checked);
+                button_WebRadarStart.Text = "Running...";
+                linkLabel_WebRadarLink.Text = $"http://fd-mambo.org:8080/?host={externalIP}&port={port}&password={textBox_WebRadarPassword.Text}";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, $"ERROR Starting Web Radar Server: {ex.Message}", Program.Name, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                button_WebRadarStart.Text = "Start";
+                button_WebRadarStart.Enabled = true;
+                checkBox_WebRadarUPNP.Enabled = true;
+                textBox_WebRadarTickRate.Enabled = true;
+                textBox_WebRadarBindIP.Enabled = true;
+                textBox_WebRadarPort.Enabled = true;
+            }
+        }
+        private async void StartWebEsp()
+        {
+            button_EspServerStart.Text = "Starting...";
+            try
+            {
+                string bindIP = textBox_WebRadarBindIP.Text.Trim();
+                int port = int.Parse(textBox_WebRadarPort.Text.Trim());
+                var externalIP = await WebRadarServer.GetExternalIPAsync();
+                await EspServer.StartEspServer(bindIP, port);
+                button_EspServerStart.Text = "Running...";
+                linkLabel_WebRadarLink.Text = $"host={bindIP}&port={port}&password={textBox_WebRadarPassword.Text}";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, $"ERROR Starting Esp Radar Server: {ex.Message}", Program.Name, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                button_EspServerStart.Text = "Start";
+            }
+        }
+
+        private void button_WebRadarStart_Click(object sender, EventArgs e) =>
+            StartWebRadar();
+        private void button_EspServerStart_Click(object sender, EventArgs e) => 
+            StartWebEsp();
+
+        private void checkBox_WebRadarUPNP_CheckedChanged(object sender, EventArgs e)
+        {
+            Config.WebRadar.UPnP = checkBox_WebRadarUPNP.Checked;
+        }
+
+        private void textBox_WebRadarHost_TextChanged(object sender, EventArgs e)
+        {
+            Config.WebRadar.IP = textBox_WebRadarBindIP.Text;
+        }
+
+        private void textBox_WebRadarPort_TextChanged(object sender, EventArgs e)
+        {
+            Config.WebRadar.Port = textBox_WebRadarPort.Text;
+        }
+        private void textBox_WebRadarTickRate_TextChanged(object sender, EventArgs e)
+        {
+            Config.WebRadar.TickRate = textBox_WebRadarTickRate.Text;
+        }
+        private void linkLabel_WebRadarLink_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            Clipboard.SetText(linkLabel_WebRadarLink.Text);
+            MessageBox.Show(this, "Copied to clipboard!");
+        }
+        #endregion
+
         #region Containers
         /// <summary>
         /// Tracked Containers Dictionary.
@@ -3613,6 +3855,17 @@ namespace eft_dma_radar.UI.Radar
                 return StringComparer.OrdinalIgnoreCase.GetHashCode(Id);
             }
         }
+
         #endregion
+
+        private void linkLabel_CheckForUpdates_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            const string updatesUrl = "https://lone-eft.com/opensource";
+            Process.Start(new ProcessStartInfo()
+            {
+                FileName = updatesUrl,
+                UseShellExecute = true
+            });
+        }
     }
 }
