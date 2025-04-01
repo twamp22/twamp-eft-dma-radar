@@ -126,24 +126,66 @@ namespace eft_dma_radar.Tarkov.WebRadar
         public static async Task<string> GetExternalIPAsync()
         {
             var errors = new StringBuilder();
+
             try
             {
                 string ip = null;
                 try
                 {
                     ip = await QueryUPnPForIPAsync();
+                    if (!string.IsNullOrWhiteSpace(ip))
+                        return ip;
                 }
                 catch (Exception ex)
                 {
-                    errors.AppendLine($"[1] {ex.Message}");
+                    errors.AppendLine($"[UPnP Error] {ex.Message}");
                 }
-                ArgumentException.ThrowIfNullOrWhiteSpace(ip, nameof(ip));
+
+                try
+                {
+                    using (var httpClient = new HttpClient())
+                    {
+                        httpClient.Timeout = TimeSpan.FromSeconds(5);
+
+                        var ipServices = new[]
+                        {
+                            "https://api.ipify.org",
+                            "https://icanhazip.com",
+                            "https://ifconfig.me/ip"
+                        };
+
+                        foreach (var service in ipServices)
+                        {
+                            try
+                            {
+                                var response = await httpClient.GetStringAsync(service);
+                                ip = response.Trim();
+
+                                if (IPAddress.TryParse(ip, out _))
+                                    return ip;
+                            }
+                            catch (Exception ex)
+                            {
+                                errors.AppendLine($"[Service {service} Error] {ex.Message}");
+                                continue;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    errors.AppendLine($"[HTTP Error] {ex.Message}");
+                }
+
+                if (string.IsNullOrWhiteSpace(ip))
+                    throw new Exception("Failed to obtain external IP address from any source");
+
                 return ip;
             }
             catch (Exception ex)
             {
-                errors.AppendLine($"[2] {ex.Message}");
-                throw new Exception($"ERROR Getting External IP: {errors.ToString()}");
+                errors.AppendLine($"[Final Error] {ex.Message}");
+                throw new Exception($"ERROR Getting External IP: {errors}");
             }
         }
 
