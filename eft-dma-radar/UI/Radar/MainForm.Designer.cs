@@ -3667,7 +3667,6 @@ namespace eft_dma_radar.UI.Radar
         private CheckBox checkBox_ShowMeds;
         private CheckBox checkBox_ShowInfoTab;
         private CheckBox checkBox_ShowLootTab;
-        
         private CheckBox checkBox_GrpConnect;
         private CheckBox checkBox_NoRecoilSway;
         private CheckBox checkBox_InfStamina;
