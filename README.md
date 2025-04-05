@@ -12,6 +12,7 @@
   - Click-through
 - Added Loot Info Widget
   - Shows a loot table sorted by highest price, can click on each item to draw a line to its destination.
+- Added optional markers for switches (doors, power, etc) Thanks Copper
 
 ## How do I start using this?
 1. Download & extract the solution
