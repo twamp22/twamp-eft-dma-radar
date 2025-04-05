@@ -215,6 +215,7 @@ namespace eft_dma_radar.UI.Radar
             comboBox_ESP_HighAlert = new ComboBox();
             checkBox_ESP_Loot = new CheckBox();
             checkBox_ESP_Exfils = new CheckBox();
+            checkBox_ESP_Switches = new CheckBox();
             checkBox_ESP_Explosives = new CheckBox();
             checkBox_ESP_ShowMag = new CheckBox();
             checkBox_ESP_Dist = new CheckBox();
@@ -301,6 +302,7 @@ namespace eft_dma_radar.UI.Radar
             Column_LootColorPicker = new DataGridViewButtonColumn();
             colorPicker1 = new ColorDialog();
             toolTip1 = new ToolTip(components);
+            checkBox_ESP_Switches = new CheckBox();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             flowLayoutPanel_Loot.SuspendLayout();
@@ -2423,6 +2425,7 @@ namespace eft_dma_radar.UI.Radar
             flowLayoutPanel_ESPSettings.Controls.Add(comboBox_ESP_HighAlert);
             flowLayoutPanel_ESPSettings.Controls.Add(checkBox_ESP_Loot);
             flowLayoutPanel_ESPSettings.Controls.Add(checkBox_ESP_Exfils);
+            flowLayoutPanel_ESPSettings.Controls.Add(checkBox_ESP_Switches);
             flowLayoutPanel_ESPSettings.Controls.Add(checkBox_ESP_Explosives);
             flowLayoutPanel_ESPSettings.Controls.Add(checkBox_ESP_ShowMag);
             flowLayoutPanel_ESPSettings.Controls.Add(checkBox_ESP_Dist);
@@ -3541,6 +3544,19 @@ namespace eft_dma_radar.UI.Radar
             toolTip1.AutoPopDelay = 20000;
             toolTip1.InitialDelay = 500;
             toolTip1.ReshowDelay = 100;
+            
+            // 
+            // checkBox_ESP_Switches
+            // 
+            checkBox_ESP_Switches.AutoSize = true;
+            checkBox_ESP_Switches.Location = new Point(181, 71);
+            checkBox_ESP_Switches.Name = "checkBox_ESP_Switches";
+            checkBox_ESP_Switches.Size = new Size(104, 19);
+            checkBox_ESP_Switches.TabIndex = 74;
+            checkBox_ESP_Switches.Text = "Show Switches";
+            checkBox_ESP_Switches.UseVisualStyleBackColor = true;
+            checkBox_ESP_Switches.CheckedChanged += checkBox_ESP_Switches_CheckedChanged;
+            
             // 
             // MainForm
             // 
@@ -3899,6 +3915,7 @@ namespace eft_dma_radar.UI.Radar
         private CheckBox checkBox_hideRaidcode;
         private CheckBox checkBox_streamerMode;
         private LinkLabel linkLabel_CheckForUpdates;
+        private CheckBox checkBox_ESP_Switches;
     }
 }
 

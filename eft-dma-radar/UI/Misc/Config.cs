@@ -646,6 +646,12 @@ namespace eft_dma_radar.UI.Misc
         /// </summary>
         [JsonPropertyName("espColors3")]
         public Dictionary<EspColorOption, string> Colors { get; set; } = EspColorOptions.GetDefaultColors();
+
+        // <summary>
+        /// Indicates whether to show switches on the ESP.
+        /// </summary>
+        [JsonPropertyName("showSwitches")]
+        public bool ShowSwitches { get; set; } = true;
     }
 
     public sealed class ESPPlayerRenderOptions

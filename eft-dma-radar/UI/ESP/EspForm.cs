@@ -414,6 +414,8 @@ namespace eft_dma_radar.UI.ESP
                             DrawFireportAim(canvas, localPlayer);
                         if (Config.ESP.ShowStatusText)
                             DrawStatusText(canvas);
+                        if (Config.ESP.ShowSwitches && GameData.Switches.TryGetValue(MapID, out var switches))
+                            DrawSwitches(canvas, localPlayer);
                     }
                 }
             }
@@ -627,6 +629,29 @@ namespace eft_dma_radar.UI.ESP
             if (exits is not null)
                 foreach (var exit in exits)
                     exit.DrawESP(canvas, localPlayer);
+        }
+
+        private static void DrawSwitches(SKCanvas canvas, LocalPlayer localPlayer)
+        {
+            if (GameData.Switches.TryGetValue(MapID, out var switches))
+            {
+                foreach (var switchEntry in switches)
+                {
+                    var switchPos = switchEntry.Value;
+                    if (!CameraManagerBase.WorldToScreen(ref switchPos, out var screenPos))
+                    {
+                        continue;
+                    }
+                    canvas.DrawText(switchEntry.Key, screenPos, SKPaints.TextSwitchesESP);
+                    if (ESP.Config.ShowDistances)
+                    {
+                        var distance = Vector3.Distance(localPlayer.Position, switchPos);
+                        var distanceText = $"{distance:F0}m";
+                        var distancePoint = new SKPoint(screenPos.X, screenPos.Y + SKPaints.TextSwitchesESP.TextSize);
+                        canvas.DrawText(distanceText, distancePoint, SKPaints.TextSwitchesESP);
+                    }
+                }
+            }
         }
 
         /// <summary>
