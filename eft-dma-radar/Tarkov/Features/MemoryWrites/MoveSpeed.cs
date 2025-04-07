@@ -24,7 +24,7 @@ namespace eft_dma_radar.Tarkov.Features.MemoryWrites
         public override void TryApply(ScatterWriteHandle writes)
         {
             const float baseSpeed = 1.0f;
-            const float increasedSpeed = 1.4f; // Any higher risks a ban
+            const float increasedSpeed = 1.2f; // Any higher risks a ban
             try
             {
                 if (Memory.LocalPlayer is LocalPlayer localPlayer)
