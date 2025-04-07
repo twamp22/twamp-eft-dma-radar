@@ -15,23 +15,23 @@ This repository is organized into several branches, each serving a specific purp
   </tr>
   <tr>
     <td><a href="../../tree/pvp-community">pvp-community</a></td>
-    <td><strong>[EFT ONLY]</strong> Enhanced with community features focused on PvP gameplay</td>
+    <td><strong>[EFT ONLY]</strong> <i>Enhanced with community features focused on PvP gameplay</i></td>
   </tr>
   <tr>
     <td><a href="../../tree/pve-community">pve-community</a></td>
-    <td><strong>[EFT ONLY]</strong> Enhanced with community features focused on PvE gameplay</td>
+    <td><strong>[EFT ONLY]</strong> <i>Enhanced with community features focused on PvE gameplay</i></td>
   </tr>
   <tr>
     <td><a href="../../tree/eft-read-only">eft-read-only</a></td>
-    <td><strong>[EFT ONLY]</strong> Radar features only (no memory writes)</td>
+    <td><strong>[EFT ONLY]</strong> <i>Radar features only (no memory writes)</i></td>
   </tr>
   <tr>
     <td><a href="../../tree/arena">arena</a></td>
-    <td><strong>[ARENA ONLY]</strong> Enhanced with community features specialized for arena gameplay</td>
+    <td><strong>[ARENA ONLY]</strong> <i>Enhanced with community features specialized for arena gameplay</i></td>
   </tr>
   <tr>
     <td><a href="../../tree/arena-read-only">arena-read-only</a></td>
-    <td><strong>[ARENA ONLY]</strong> Radar features only (no memory writes)</td>
+    <td><strong>[ARENA ONLY]</strong> Radar features only (no memory writes)</i></td>
   </tr>
 </table>
 
