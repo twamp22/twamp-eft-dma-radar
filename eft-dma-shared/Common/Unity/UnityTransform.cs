@@ -33,7 +33,7 @@ namespace eft_dma_shared.Common.Unity
             /// Populate Indices once for the Life of the Transform.
             _indices = ReadIndices();
         }
-        
+
         private ReadOnlySpan<int> Indices
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -129,17 +129,6 @@ namespace eft_dma_shared.Common.Unity
         }
 
         /// <summary>
-        /// Set a new Root World Posititon for this Transform.
-        /// WARNING: This can be risky if you don't know what you're doing.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void UpdateRootPosition(ref Vector3 newRootPos)
-        {
-            newRootPos.ThrowIfAbnormal();
-            Memory.WriteValue(HierarchyAddr + TransformHierarchy.RootPositionOffset, ref newRootPos);
-        }
-
-        /// <summary>
         /// Get Transform's Local Position.
         /// </summary>
         /// <returns>Local Position</returns>
@@ -167,7 +156,6 @@ namespace eft_dma_shared.Common.Unity
         {
             return Memory.ReadValue<TrsX>(VerticesAddr + (uint)Index * (uint)SizeChecker<TrsX>.Size, _useCache).q;
         }
-
 
         /// <summary>
         /// Convert from Local Point to World Point.
@@ -219,7 +207,6 @@ namespace eft_dma_shared.Common.Unity
 
                 var worldPos = vertices[Index].t;
                 var worldRot = vertices[Index].q;
-
                 Vector3 localScale = vertices[Index].s;
 
                 int index = Indices[Index];
@@ -317,10 +304,10 @@ namespace eft_dma_shared.Common.Unity
     public static class UnityTransformExtensions
     {
         private static readonly Vector3 _left = new Vector3(-1, 0, 0);
-        private static readonly Vector3 _right = new(1, 0, 0);
-        private static readonly Vector3 _up = new(0, 1, 0);
-        private static readonly Vector3 _down = new(0, -1, 0);
-        private static readonly Vector3 _forward = new(0, 0, 1);
+        private static readonly Vector3 _right = new Vector3(1, 0, 0);
+        private static readonly Vector3 _up = new Vector3(0, 1, 0);
+        private static readonly Vector3 _down = new Vector3(0, -1, 0);
+        private static readonly Vector3 _forward = new Vector3(0, 0, 1);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector3 Left(this Quaternion q) =>

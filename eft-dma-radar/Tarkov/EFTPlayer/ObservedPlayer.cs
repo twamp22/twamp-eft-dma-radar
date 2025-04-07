@@ -1,11 +1,6 @@
-﻿using eft_dma_radar.Tarkov.API;
+﻿using eft_dma_shared.Common.Misc;
 using eft_dma_radar.Tarkov.EFTPlayer.Plugins;
-using eft_dma_radar.Tarkov.Features.MemoryWrites.Patches;
-using eft_dma_radar.UI.ESP;
 using eft_dma_shared.Common.DMA.ScatterAPI;
-using eft_dma_shared.Common.Features;
-using eft_dma_shared.Common.Misc.Commercial;
-using eft_dma_shared.Common.Misc.Data;
 using eft_dma_shared.Common.Players;
 using eft_dma_shared.Common.Unity;
 using static SDK.Enums;
@@ -113,22 +108,11 @@ namespace eft_dma_radar.Tarkov.EFTPlayer
             {
                 if (isAI)
                 {
-                    if (MemPatchFeature<FixWildSpawnType>.Instance.IsApplied)
-                    {
-                        ulong infoContainer = Memory.ReadPtr(ObservedPlayerController + Offsets.ObservedPlayerController.InfoContainer);
-                        var wildSpawnType = (Enums.WildSpawnType)Memory.ReadValueEnsure<int>(infoContainer + Offsets.InfoContainer.Side);
-                        var role = Player.GetAIRoleInfo(wildSpawnType);
-                        Name = role.Name;
-                        Type = role.Type;
-                    }
-                    else // Check voice lines!
-                    {
-                        var voicePtr = Memory.ReadPtr(this + Offsets.ObservedPlayerView.Voice);
-                        string voice = Memory.ReadUnityString(voicePtr);
-                        var role = Player.GetAIRoleInfo(voice);
-                        Name = role.Name;
-                        Type = role.Type;
-                    }
+                    var voicePtr = Memory.ReadPtr(this + Offsets.ObservedPlayerView.Voice);
+                    string voice = Memory.ReadUnityString(voicePtr);
+                    var role = Player.GetAIRoleInfo(voice);
+                    Name = role.Name;
+                    Type = role.Type;
                 }
                 else
                 {

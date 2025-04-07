@@ -19,14 +19,6 @@ namespace eft_dma_shared.Misc
         [LibraryImport("powrprof.dll")]
         public static partial uint PowerSetActiveScheme(IntPtr userRootPowerKey, ref Guid schemeGuid);
 
-        [LibraryImport("kernel32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static partial bool SetProcessWorkingSetSizeEx(
-            IntPtr hProcess,
-            ulong dwMinimumWorkingSetSize,
-            ulong dwMaximumWorkingSetSize,
-            uint flags);
-
         [Flags]
         public enum EXECUTION_STATE : uint
         {

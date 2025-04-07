@@ -55,10 +55,5 @@
         {
             public const uint OpticMaskMaterial = 0x60; // -.SSAA->_opticMaskMaterial // Offset: 0x0060 (Type: UnityEngine.Material)
         }
-        public readonly struct UnityString
-        {
-            public const uint Length = 0x10; // int32
-            public const uint Value = 0x14; // string,unicode
-        }        
     }
 }

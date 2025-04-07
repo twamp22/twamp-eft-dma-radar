@@ -20,7 +20,7 @@ namespace eft_dma_shared.Common.Unity
         /// True if Optic Camera is currently active.
         /// </summary>
         protected bool OpticCameraActive => Memory.ReadValue<bool>(OpticCamera + MonoBehaviour.IsAddedOffset, false);
-        public bool isOpticCameraActive => OpticCameraActive;
+
         protected CameraManagerBase()
         {
         }
@@ -55,7 +55,6 @@ namespace eft_dma_shared.Common.Unity
         protected static float _fov;
         protected static float _aspect;
         protected static readonly ViewMatrix _viewMatrix = new();
-        public static ViewMatrix ViewMatrixWeb => _viewMatrix;
 
         /// <summary>
         /// Update the Viewport Dimensions for Camera Calculations.

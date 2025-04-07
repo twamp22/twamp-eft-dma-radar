@@ -6,7 +6,6 @@ using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using eft_dma_shared.Common.Misc;
 using eft_dma_shared.Common.DMA.ScatterAPI;
-using eft_dma_shared.Common.Misc.Commercial;
 using eft_dma_shared.Common.Unity.LowLevel.Hooks;
 
 namespace eft_dma_shared.Common.DMA
@@ -111,7 +110,7 @@ namespace eft_dma_shared.Common.DMA
             }
             catch (Exception ex)
             {
-                LoneLogging.WriteLine(
+                throw new Exception(
                 "DMA Initialization Failed!\n" +
                 $"Reason: {ex.Message}\n" +
                 $"{versions}\n\n" +
@@ -120,18 +119,6 @@ namespace eft_dma_shared.Common.DMA
                 "2. Reseat all cables/connections and make sure they are secure.\n" +
                 "3. Changed Hardware/Operating System on Game PC? Delete your mmap.txt and symbols folder.\n" +
                 "4. Make sure all Setup Steps are completed (See DMA Setup Guide/FAQ for additional troubleshooting).");
-                
-                DialogResult result = MessageBox.Show(
-                    "DMA Initialization Failed!\n\nCreating a dummy window for debugging?",
-                    "DMA Initialization Failed!",
-                    MessageBoxButtons.OKCancel,
-                    MessageBoxIcon.Warning
-                );
-
-                if (result == DialogResult.Cancel || result == DialogResult.None)
-                {
-                    Environment.Exit(0);
-                }
             }
         }
 
@@ -170,7 +157,7 @@ namespace eft_dma_shared.Common.DMA
         /// </summary>
         public void FullRefresh()
         {
-            if (_hVMM == null || !_hVMM.SetConfig(Vmm.CONFIG_OPT_REFRESH_ALL, 1))
+            if (!_hVMM.SetConfig(Vmm.CONFIG_OPT_REFRESH_ALL, 1))
                 LoneLogging.WriteLine("WARNING: Vmm FULL Refresh Failed!");
         }
 
@@ -283,12 +270,6 @@ namespace eft_dma_shared.Common.DMA
 
             uint flags = useCache ? 0 : Vmm.FLAG_NOCACHE;
             using var hScatter = _hVMM.MemReadScatter2(_pid, flags, pagesToRead.ToArray());
-            if (AntiPage.Initialized)
-            {
-                foreach (var failed in hScatter.Failed)
-                    AntiPage.Register(failed, 8); // This is always one page at a time
-            }
-
             foreach (var entry in entries) // Second loop through all entries - PARSE RESULTS
             {
                 if (entry.IsFailed)
@@ -335,8 +316,6 @@ namespace eft_dma_shared.Common.DMA
             }
             catch (VmmException)
             {
-                if (AntiPage.Initialized)
-                    AntiPage.Register(addr, cb);
                 throw;
             }
         }
@@ -378,61 +357,7 @@ namespace eft_dma_shared.Common.DMA
             }
             catch (VmmException)
             {
-                if (AntiPage.Initialized)
-                    AntiPage.Register(addr, cb);
                 throw;
-            }
-        }
-        /// <summary>
-        /// Read memory into a buffer and validate the right bytes were received.
-        /// </summary>
-        public static byte[] ReadBufferEnsureE(ulong addr, int size)
-        {
-            const int ValidationCount = 3;       
-            try
-            {
-                // Ensure MemoryInterface.Memory is initialized
-                if (MemoryInterface.Memory == null)
-                    throw new Exception("[DMA] MemoryInterface.Memory is not initialized!");
-        
-                byte[][] buffers = new byte[ValidationCount][];
-                for (int i = 0; i < ValidationCount; i++)
-                {
-                    buffers[i] = new byte[size];
-        
-                    unsafe
-                    {
-                        fixed (byte* bufferPtr = buffers[i])
-                        {
-                            uint bytesRead = MemoryInterface.Memory._hVMM.MemRead(
-                                MemoryInterface.Memory.PID, // Process ID
-                                addr,                      // Memory Address
-                                (nint)bufferPtr,           // Pointer to buffer
-                                (uint)size,                // Size to read
-                                Vmm.FLAG_NOCACHE           // No cache flag
-                            );
-        
-                            if (bytesRead != size)
-                                throw new Exception("Incomplete memory read!");
-                        }
-                    }
-                }
-        
-                // Check that all arrays have the same contents
-                for (int i = 1; i < ValidationCount; i++)
-                {
-                    if (!buffers[i].SequenceEqual(buffers[0]))
-                    {
-                        LoneLogging.WriteLine($"[WARN] ReadBufferEnsure() -> 0x{addr:X} did not pass validation!");
-                        return null;
-                    }
-                }
-        
-                return buffers[0];
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"[DMA] ERROR reading buffer at 0x{addr:X}", ex);
             }
         }
 
@@ -473,8 +398,6 @@ namespace eft_dma_shared.Common.DMA
             }
             catch (VmmException)
             {
-                if (AntiPage.Initialized)
-                    AntiPage.Register(addr, (uint)sizeof(T));
                 throw;
             }
         }
@@ -495,8 +418,6 @@ namespace eft_dma_shared.Common.DMA
             }
             catch (VmmException)
             {
-                if (AntiPage.Initialized)
-                    AntiPage.Register(addr, (uint)sizeof(T));
                 throw;
             }
         }
@@ -528,8 +449,6 @@ namespace eft_dma_shared.Common.DMA
             }
             catch (VmmException)
             {
-                if (AntiPage.Initialized)
-                    AntiPage.Register(addr, (uint)cb);
                 throw;
             }
         }
@@ -561,8 +480,6 @@ namespace eft_dma_shared.Common.DMA
             }
             catch (VmmException)
             {
-                if (AntiPage.Initialized)
-                    AntiPage.Register(addr, (uint)cb);
                 throw;
             }
         }
@@ -600,201 +517,6 @@ namespace eft_dma_shared.Common.DMA
             return nullIndex >= 0
                 ? Encoding.Unicode.GetString(buffer.Slice(0, nullIndex))
                 : Encoding.Unicode.GetString(buffer);
-        }
-
-        #endregion
-
-        #region WriteMethods
-
-        /// <summary>
-        /// Write value type/struct to specified address, and ensure it is written.
-        /// </summary>
-        /// <typeparam name="T">Specified Value Type.</typeparam>
-        /// <param name="addr">Address to write to.</param>
-        /// <param name="value">Value to write.</param>
-        public unsafe void WriteValueEnsure<T>(ulong addr, T value)
-            where T : unmanaged, allows ref struct
-        {
-            int cb = sizeof(T);
-            try
-            {
-                var b1 = new ReadOnlySpan<byte>(&value, cb);
-                const int retryCount = 3;
-                for (int i = 0; i < retryCount; i++)
-                {
-                    try
-                    {
-                        WriteValue(addr, value);
-                        Thread.SpinWait(5);
-                        T temp = ReadValue<T>(addr, false);
-                        var b2 = new ReadOnlySpan<byte>(&temp, cb);
-                        if (b1.SequenceEqual(b2))
-                        {
-                            return; // SUCCESS
-                        }
-                    }
-                    catch { }
-                }
-                throw new VmmException("Memory Write Failed!");
-            }
-            catch (VmmException)
-            {
-                if (AntiPage.Initialized)
-                    AntiPage.Register(addr, (uint)cb);
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Write byref value type/struct to specified address, and ensure it is written.
-        /// </summary>
-        /// <typeparam name="T">Specified Value Type.</typeparam>
-        /// <param name="addr">Address to write to.</param>
-        /// <param name="value">Value to write.</param>
-        public unsafe void WriteValueEnsure<T>(ulong addr, ref T value)
-            where T : unmanaged, allows ref struct
-        {
-            int cb = sizeof(T);
-            try
-            {
-                fixed (void* pb = &value)
-                {
-                    var b1 = new ReadOnlySpan<byte>(pb, cb);
-                    const int retryCount = 3;
-                    for (int i = 0; i < retryCount; i++)
-                    {
-                        try
-                        {
-                            WriteValue(addr, ref value);
-                            Thread.SpinWait(5);
-                            T temp = ReadValue<T>(addr, false);
-                            var b2 = new ReadOnlySpan<byte>(&temp, cb);
-                            if (b1.SequenceEqual(b2))
-                            {
-                                return; // SUCCESS
-                            }
-                        }
-                        catch { }
-                    }
-                    throw new VmmException("Memory Write Failed!");
-                }
-            }
-            catch (VmmException)
-            {
-                if (AntiPage.Initialized)
-                    AntiPage.Register(addr, (uint)cb);
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Write value type/struct to specified address.
-        /// </summary>
-        /// <typeparam name="T">Specified Value Type.</typeparam>
-        /// <param name="addr">Address to write to.</param>
-        /// <param name="value">Value to write.</param>
-        public unsafe void WriteValue<T>(ulong addr, T value)
-            where T : unmanaged, allows ref struct
-        {
-            if (!SharedProgram.Config?.MemWritesEnabled ?? false)
-                throw new Exception("Memory Writing is Disabled!");
-            try
-            {
-                if (!_hVMM.MemWriteAs(_pid, addr, value))
-                    throw new VmmException("Memory Write Failed!");
-            }
-            catch (VmmException)
-            {
-                if (AntiPage.Initialized)
-                    AntiPage.Register(addr, (uint)sizeof(T));
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Write byref value type/struct to specified address.
-        /// </summary>
-        /// <typeparam name="T">Specified Value Type.</typeparam>
-        /// <param name="addr">Address to write to.</param>
-        /// <param name="value">Value to write.</param>
-        public unsafe void WriteValue<T>(ulong addr, ref T value)
-            where T : unmanaged, allows ref struct
-        {
-            if (!SharedProgram.Config?.MemWritesEnabled ?? false)
-                throw new Exception("Memory Writing is Disabled!");
-            try
-            {
-                if (!_hVMM.MemWriteAs(_pid, addr, ref value))
-                    throw new VmmException("Memory Write Failed!");
-            }
-            catch (VmmException)
-            {
-                if (AntiPage.Initialized)
-                    AntiPage.Register(addr, (uint)sizeof(T));
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Write byte array buffer to Memory Address.
-        /// </summary>
-        /// <param name="addr">Address to write to.</param>
-        /// <param name="buffer">Buffer to write.</param>
-        public unsafe void WriteBuffer<T>(ulong addr, Span<T> buffer)
-            where T : unmanaged
-        {
-            if (!SharedProgram.Config?.MemWritesEnabled ?? false)
-                throw new Exception("Memory Writing is Disabled!");
-            try
-            {
-                if (!_hVMM.MemWriteSpan(_pid, addr, buffer))
-                    throw new VmmException("Memory Write Failed!");
-            }
-            catch (VmmException)
-            {
-                if (AntiPage.Initialized)
-                    AntiPage.Register(addr, (uint)sizeof(T));
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Write a buffer to the specified address and validate the right bytes were written.
-        /// </summary>
-        /// <param name="addr">Address to write to.</param>
-        /// <param name="buffer">Buffer to write.</param>
-        public void WriteBufferEnsure<T>(ulong addr, Span<T> buffer)
-            where T : unmanaged
-        {
-            int cb = SizeChecker<T>.Size * buffer.Length;
-            try
-            {
-                Span<byte> temp = cb > 0x1000 ? new byte[cb] : stackalloc byte[cb];
-                ReadOnlySpan<byte> b1 = MemoryMarshal.Cast<T, byte>(buffer);
-                const int retryCount = 3;
-                for (int i = 0; i < retryCount; i++)
-                {
-                    try
-                    {
-                        WriteBuffer(addr, buffer);
-                        Thread.SpinWait(5);
-                        temp.Clear();
-                        ReadBuffer(addr, temp, false, false);
-                        if (temp.SequenceEqual(b1))
-                        {
-                            return; // SUCCESS
-                        }
-                    }
-                    catch { }
-                }
-                throw new VmmException("Memory Write Failed!");
-            }
-            catch (VmmException)
-            {
-                if (AntiPage.Initialized)
-                    AntiPage.Register(addr, (uint)cb);
-                throw;
-            }
         }
 
         #endregion

@@ -1,16 +1,11 @@
-﻿using DarkModeForms;
-using eft_dma_radar.Features.MemoryWrites.UI;
-using eft_dma_radar.Tarkov.API;
+﻿using eft_dma_shared.Common.Misc;
+using DarkModeForms;
 using eft_dma_radar.Tarkov.EFTPlayer;
 using eft_dma_radar.Tarkov.EFTPlayer.Plugins;
-using eft_dma_radar.Tarkov.Features;
-using eft_dma_radar.Tarkov.Features.MemoryWrites;
-using eft_dma_radar.Tarkov.Features.MemoryWrites.Patches;
 using eft_dma_radar.Tarkov.GameWorld;
 using eft_dma_radar.Tarkov.GameWorld.Exits;
 using eft_dma_radar.Tarkov.GameWorld.Explosives;
 using eft_dma_radar.Tarkov.Loot;
-using eft_dma_radar.Tarkov.WebRadar;
 using eft_dma_radar.UI.ColorPicker;
 using eft_dma_radar.UI.ColorPicker.ESP;
 using eft_dma_radar.UI.ColorPicker.Radar;
@@ -20,19 +15,15 @@ using eft_dma_radar.UI.LootFilters;
 using eft_dma_radar.UI.Misc;
 using eft_dma_radar.UI.SKWidgetControl;
 using eft_dma_shared.Common.ESP;
-using eft_dma_shared.Common.Features;
-using eft_dma_shared.Common.Features.MemoryWrites;
 using eft_dma_shared.Common.Maps;
-using eft_dma_shared.Common.Misc;
-using eft_dma_shared.Common.Misc.Commercial;
 using eft_dma_shared.Common.Misc.Data;
 using eft_dma_shared.Common.Unity;
 using eft_dma_shared.Common.Unity.LowLevel;
-using System.Security.Authentication.ExtendedProtection;
 using System.Timers;
 using static eft_dma_radar.UI.Hotkeys.HotkeyManager;
 using static eft_dma_radar.UI.Hotkeys.HotkeyManager.HotkeyActionController;
 using Timer = System.Timers.Timer;
+using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 
 namespace eft_dma_radar.UI.Radar
 {
@@ -57,7 +48,6 @@ namespace eft_dma_radar.UI.Radar
         private Vector2 _mapPanPosition;
         private EspWidget _aimview;
         private PlayerInfoWidget _playerInfo;
-        private LootInfoWidget _lootInfo;
 
         /// <summary>
         /// Main UI/Application Config.
@@ -172,7 +162,7 @@ namespace eft_dma_radar.UI.Radar
                     players = players.Where(x =>
                         x.LootObject is null || !loot.Contains(x.LootObject)); // Don't show both corpse objects
 
-                var result = loot.Concat(containers).Concat(players).Concat(exits).Concat(questZones).Concat(_switches);
+                var result = loot.Concat(containers).Concat(players).Concat(exits).Concat(questZones);
                 return result.Any() ? result : null;
             }
         }
@@ -196,10 +186,8 @@ namespace eft_dma_radar.UI.Radar
             RadarColorOptions.LoadColors(Config);
             EspColorOptions.LoadColors(Config);
             SetUiEventHandlers();
-            PopulateComboBoxes();
             LoadHotkeyManager();
             SetupDataGrids();
-            SetMemWriteFeatures();
             SetUiValues();
             var interval = TimeSpan.FromMilliseconds(1000d / Config.RadarTargetFPS);
             _renderTimer = new(interval);
@@ -247,8 +235,6 @@ namespace eft_dma_radar.UI.Radar
             var inRaid = InRaid; // cache bool
             var localPlayer = LocalPlayer; // cache ref to current player
             var canvas = e.Surface.Canvas; // get Canvas reference to draw on
-            var mousePos = GetMousePosition(); // Implement this to track mouse position
-            var mouseClicked = CheckMouseClick();
             try
             {
                 SetFPS(inRaid);
@@ -258,7 +244,6 @@ namespace eft_dma_radar.UI.Radar
                 if (!mapID.Equals(LoneMapManager.Map?.ID, StringComparison.OrdinalIgnoreCase)) // Map changed
                 {
                     LoneMapManager.LoadMap(mapID);
-                    UpdateSwitches();
                 }
                 canvas.Clear(); // Clear canvas
                 if (inRaid && localPlayer is not null) // LocalPlayer is in a raid -> Begin Drawing...
@@ -368,25 +353,6 @@ namespace eft_dma_radar.UI.Radar
                         } // end exfils
                     }
 
-                    // Draw switches from the cached list
-                    foreach (var switchInstance in _switches)
-                    {
-                        // Save the current canvas state
-                        //canvas.Save();
-
-                        // Get the switch's position on the map
-                        var switchPosition = switchInstance.Position.ToMapPos(map.Config).ToZoomedPos(mapParams);
-
-                        // Apply a rotation transformation to the canvas
-                        //canvas.RotateDegrees(180, switchPosition.X, switchPosition.Y);
-
-                        // Draw the switch
-                        switchInstance.Draw(canvas, mapParams, localPlayer);
-
-                        // Restore the canvas state
-                        //canvas.Restore();
-                    }
-
                     if (allPlayers is not null)
                         foreach (var player in allPlayers) // Draw PMCs
                         {
@@ -421,14 +387,11 @@ namespace eft_dma_radar.UI.Radar
                         }
                     } // End Grp Connect
 
-                    DrawSelectedLootLine(canvas, localPlayer, mapParams);
-
                     if (allPlayers is not null &&
                         checkBox_ShowInfoTab.Checked) // Players Overlay
                         _playerInfo?.Draw(canvas, localPlayer, allPlayers);
                     closestToMouse?.DrawMouseover(canvas, mapParams, localPlayer);// draw tooltip for object the mouse is closest to
-                    if (checkBox_ShowLootTab.Checked) // Loot Overlay
-                        _lootInfo?.Draw(canvas, localPlayer, mousePos, mouseClicked);
+
                     if (Config.ESPWidgetEnabled)
                         _aimview?.Draw(canvas);
                 }
@@ -441,43 +404,12 @@ namespace eft_dma_radar.UI.Radar
                     else if (!inRaid)
                         WaitingForRaidStatus(canvas);
                 }
-                SetStatusText(canvas);
                 canvas.Flush(); // commit frame to GPU
             }
             catch (Exception ex) // Log rendering errors
             {
                 LoneLogging.WriteLine($"CRITICAL RENDER ERROR: {ex}");
             }
-        }
-        private void DrawSelectedLootLine(SKCanvas canvas, Player localPlayer, LoneMapParams mapParams)
-        {
-            var selectedLoot = _lootInfo?.GetSelectedLoot();
-            if (selectedLoot == null) return; // No selected loot, no line
-
-            var playerPos = localPlayer.Position.ToMapPos(mapParams.Map).ToZoomedPos(mapParams);
-            var lootPos = selectedLoot.Position.ToMapPos(mapParams.Map).ToZoomedPos(mapParams);
-
-            using var paint = new SKPaint
-            {
-                Color = SKColors.Red,
-                StrokeWidth = 3f,
-                Style = SKPaintStyle.Stroke,
-                IsAntialias = true
-            };
-
-            canvas.DrawLine(playerPos, lootPos, paint);
-        }
-        private SKPoint GetMousePosition()
-        {
-            var mouse = skglControl_Radar.PointToClient(Cursor.Position);
-            float dpiScaleX = skglControl_Radar.Width / (float)skglControl_Radar.ClientSize.Width;
-            float dpiScaleY = skglControl_Radar.Height / (float)skglControl_Radar.ClientSize.Height;
-
-            return new SKPoint(mouse.X * dpiScaleX, mouse.Y * dpiScaleY);
-        }
-        private bool CheckMouseClick()
-        {
-            return (Control.MouseButtons & MouseButtons.Left) != 0;
         }
 
         private readonly Stopwatch _statusSw = Stopwatch.StartNew();
@@ -499,6 +431,8 @@ namespace eft_dma_radar.UI.Radar
         {
             const string notRunning = "Game Process Not Running!";
             float textWidth = SKPaints.TextRadarStatus.MeasureText(notRunning);
+            canvas.DrawText(notRunning, (skglControl_Radar.Width / 2) - textWidth / 2f, skglControl_Radar.Height / 2,
+                SKPaints.TextRadarStatus);
             IncrementStatus();
         }
         private void StartingUpStatus(SKCanvas canvas)
@@ -523,6 +457,8 @@ namespace eft_dma_radar.UI.Radar
                 waitingFor1 : _statusOrder == 2 ?
                 waitingFor2 : waitingFor3;
             float textWidth = SKPaints.TextRadarStatus.MeasureText(waitingFor1);
+            canvas.DrawText(status, (skglControl_Radar.Width / 2) - textWidth / 2f, skglControl_Radar.Height / 2,
+                SKPaints.TextRadarStatus);
             IncrementStatus();
         }
 
@@ -547,28 +483,7 @@ namespace eft_dma_radar.UI.Radar
                 }
             }
         }
-        private void checkBox_hideRaidcode_CheckedChanged(object sender, EventArgs e)
-        {
-            // Update config
-            Program.Config.MemWrites.HideRaidCode = checkBox_hideRaidcode.Checked;
-        
-            // Enable or disable the feature
-            MemPatchFeature<HideRaidCode>.Instance.Enabled = checkBox_hideRaidcode.Checked;
-        
-            // Apply the changes immediately
-            MemPatchFeature<HideRaidCode>.Instance.TryApply();
-        }
-        private void checkBox_streamerMode_CheckedChanged(object sender, EventArgs e)
-        {
-            // Update config
-            Program.Config.MemWrites.StreamerMode = checkBox_streamerMode.Checked;
-        
-            // Enable or disable the feature
-            MemPatchFeature<StreamerMode>.Instance.Enabled = checkBox_streamerMode.Checked;
-        
-            // Apply the changes immediately
-            MemPatchFeature<StreamerMode>.Instance.TryApply();
-        }
+
         private void checkBox_LootWishlist_CheckedChanged(object sender, EventArgs e)
         {
             Config.LootWishlist = checkBox_LootWishlist.Checked;
@@ -577,11 +492,6 @@ namespace eft_dma_radar.UI.Radar
         private void checkBox_AIAimlines_CheckedChanged(object sender, EventArgs e)
         {
             Config.AIAimlines = checkBox_AIAimlines.Checked;
-        }
-
-        private void checkBox_AntiPage_CheckedChanged(object sender, EventArgs e)
-        {
-            Program.Config.MemWrites.AntiPage = checkBox_AntiPage.Checked;
         }
 
         private void radioButton_Loot_FleaPrice_CheckedChanged(object sender, EventArgs e)
@@ -595,132 +505,14 @@ namespace eft_dma_radar.UI.Radar
             if (radioButton_Loot_VendorPrice.Checked)
                 Config.LootPriceMode = LootPriceMode.Trader;
         }
-        private void textBox_VischeckVisColorPMC_TextChanged(object sender, EventArgs e)
-        {
-            Chams.Config.VisibleColorPMC = textBox_VischeckVisColorPMC.Text;
-        }
-
-        private void textBox_VischeckInvisColorPMC_TextChanged(object sender, EventArgs e)
-        {
-            Chams.Config.InvisibleColorPMC = textBox_VischeckInvisColorPMC.Text;
-        }
-
-        private void button_VischeckVisColorPickPMC_Click(object sender, EventArgs e)
-        {
-            if (colorPicker1.ShowDialog() is DialogResult.OK)
-            {
-                textBox_VischeckVisColorPMC.Text = colorPicker1.Color.ToSKColor().ToString();
-            }
-        }
-
-        private void button_VischeckInvisColorPickPMC_Click(object sender, EventArgs e)
-        {
-            if (colorPicker1.ShowDialog() is DialogResult.OK)
-            {
-                textBox_VischeckInvisColorPMC.Text = colorPicker1.Color.ToSKColor().ToString();
-            }
-        }
-        private void textBox_VischeckVisColor_TextChanged(object sender, EventArgs e)
-        {
-            Chams.Config.VisibleColor = textBox_VischeckVisColor.Text;
-        }
-
-        private void textBox_VischeckInvisColor_TextChanged(object sender, EventArgs e)
-        {
-            Chams.Config.InvisibleColor = textBox_VischeckInvisColor.Text;
-        }
-
-        private void button_VischeckVisColorPick_Click(object sender, EventArgs e)
-        {
-            if (colorPicker1.ShowDialog() is DialogResult.OK)
-            {
-                textBox_VischeckVisColor.Text = colorPicker1.Color.ToSKColor().ToString();
-            }
-        }
-
-        private void button_VischeckInvisColorPick_Click(object sender, EventArgs e)
-        {
-            if (colorPicker1.ShowDialog() is DialogResult.OK)
-            {
-                textBox_VischeckInvisColor.Text = colorPicker1.Color.ToSKColor().ToString();
-            }
-        }
-
-        private void checkBox_FastLoadUnload_CheckedChanged(object sender, EventArgs e)
-        {
-            MemPatchFeature<FastLoadUnload>.Instance.Enabled = checkBox_FastLoadUnload.Checked;
-        }
-        private void checkBox_FastWeaponOps_CheckedChanged(object sender, EventArgs e)
-        {
-            MemWriteFeature<FastWeaponOps>.Instance.Enabled = checkBox_FastWeaponOps.Checked;
-        }
-
-        private void checkBox_AdvancedMemWrites_CheckedChanged(object sender, EventArgs e)
-        {
-            bool enabled = checkBox_AdvancedMemWrites.Checked;
-            ToggleAdvMemwriteFeatures(enabled);
-            if (enabled) // Enable Memory Writing
-            {
-                var dlg = MessageBox.Show(
-                    "Are you sure you want to enable Advanced Memory Writing? This uses a riskier injection technique than regular Mem Write Features.",
-                    "Enable Advanced Mem Writes?",
-                    MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (dlg is DialogResult.Yes)
-                {
-                    MemWrites.Config.AdvancedMemWrites = enabled;
-                }
-                else
-                    checkBox_AdvancedMemWrites.Checked = false;
-            }
-            else // Disable Memory Writing
-            {
-                MemWrites.Config.AdvancedMemWrites = false;
-            }
-        }
 
         private void ToggleAdvMemwriteFeatures(bool enabled)
         {
-            radioButton_Chams_VisCheckGlow.Enabled = enabled;
-            radioButton_Chams_VischeckFlat.Enabled = enabled;
-            radioButton_Chams_VisCheckWireframe.Enabled = enabled;
+            radioButton_Chams_Vischeck.Enabled = enabled;
             radioButton_Chams_Visible.Enabled = enabled;
             checkBox_AntiPage.Enabled = enabled;
-            checkBox_streamerMode.Enabled = enabled;
-            checkBox_hideRaidcode.Enabled = enabled;
         }
-        private void checkBox_FullBright_CheckedChanged(object sender, EventArgs e)
-        {
-            MemWriteFeature<FullBright>.Instance.Enabled = checkBox_FullBright.Checked;
-        }
-        private async void button_GymHack_Click(object sender, EventArgs e)
-        {
-            string original = button_GymHack.Text;
-            button_GymHack.Text = "Please Wait...";
-            button_GymHack.Enabled = false;
-            try
-            {
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-                await MemPatchFeature<GymPatch>.Instance.Apply(cts.Token);
-                MessageBox.Show("Gym Hack is Set! This will remain set until the game closes.",
-                    Program.Name,
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("ERROR Setting Gym Hack! Make sure you started a workout in the 15 second window, otherwise your memory may be paged out. " +
-                    "Reopen your game and try again.\n\n" +
-                    $"{ex}",
-                    Program.Name,
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-            }
-            finally
-            {
-                button_GymHack.Text = original;
-                button_GymHack.Enabled = true;
-            }
-        }
+
         private void checkBox_Containers_HideSearched_CheckedChanged(object sender, EventArgs e)
         {
             Config.Containers.HideSearched = checkBox_Containers_HideSearched.Checked;
@@ -731,109 +523,6 @@ namespace eft_dma_radar.UI.Radar
             bool enabled = checkBox_ShowContainers.Checked;
             Config.Containers.Show = enabled;
             flowLayoutPanel_Loot_Containers.Enabled = enabled;
-        }
-        private void TrackBar_LTWAmount_ValueChanged(object sender, EventArgs e)
-        {
-            int value = trackBar_LTWAmount.Value;
-            MemWrites.Config.LootThroughWalls.ZoomAmount = value;
-            float scaledAmt = value * 0.01f;
-            label_LTWAmount.Text = $"Zoom Amount {scaledAmt.ToString("0.00")}";
-        }
-
-        private void checkBox_LTW_CheckedChanged(object sender, EventArgs e)
-        {
-            bool enabled = checkBox_LTW.Checked;
-            flowLayoutPanel_LTW.Enabled = enabled;
-            MemWriteFeature<LootThroughWalls>.Instance.Enabled = enabled;
-        }
-
-        private void checkBox_MoveSpeed_CheckedChanged(object sender, EventArgs e)
-        {
-            bool enabled = checkBox_MoveSpeed.Checked;
-            MemWriteFeature<MoveSpeed>.Instance.Enabled = enabled;
-        }
-
-        private void TrackBar_WideLeanAmt_ValueChanged(object sender, EventArgs e)
-        {
-            int value = trackBar_WideLeanAmt.Value;
-            MemWrites.Config.WideLean.Amount = value;
-            float scaledAmt = value * 0.01f;
-            label_WideLeanAmt.Text = $"Amount {scaledAmt.ToString("0.00")}";
-        }
-        private void comboBox_WideLeanMode_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (comboBox_WideLeanMode.SelectedItem is HotkeyModeListItem item)
-            {
-                MemWrites.Config.WideLean.Mode = item.Mode;
-            }
-        }
-
-        private void checkBox_NoWepMalf_CheckedChanged(object sender, EventArgs e)
-        {
-            MemPatchFeature<NoWepMalfPatch>.Instance.Enabled = checkBox_NoWepMalf.Checked;
-        }
-        private async void button_AntiAfk_Click(object sender, EventArgs e)
-        {
-            button_AntiAfk.Text = "Please Wait...";
-            button_AntiAfk.Enabled = false;
-            try
-            {
-                await Task.Run(() => // Run on non ui thread
-                {
-                    MemWriteFeature<AntiAfk>.Instance.Set();
-                });
-                MessageBox.Show("Anti-AFK is Set!\n\n" +
-                    "NOTE: If you leave the Main Menu, you may need to re-set this.",
-                    Program.Name,
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("ERROR Setting Anti-AFK! Your memory may be paged out, try close and re-open the game and try again.\n\n" +
-                    $"{ex}",
-                    Program.Name,
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-            }
-            finally
-            {
-                button_AntiAfk.Text = "Anti-AFK";
-                button_AntiAfk.Enabled = true;
-            }
-        }
-        private void checkBox_RageMode_CheckedChanged(object sender, EventArgs e)
-        {
-            MemWriteFeature<RageMode>.Instance.Enabled = checkBox_RageMode.Checked;
-        }
-        private void checkBox_AimRandomBone_CheckedChanged(object sender, EventArgs e)
-        {
-            bool enabled = checkBox_AimRandomBone.Checked;
-            Aimbot.Config.RandomBone.Enabled = enabled;
-            button_RandomBoneCfg.Enabled = enabled;
-            comboBox_AimbotTarget.Enabled = !enabled;
-        }
-
-        private void button_RandomBoneCfg_Click(object sender, EventArgs e)
-        {
-            using var form = new AimbotRandomBoneForm();
-            var dlg = form.ShowDialog();
-            if (!Aimbot.Config.RandomBone.Is100Percent)
-                Aimbot.Config.RandomBone.ResetDefaults();
-        }
-        private void checkBox_SA_AutoBone_CheckedChanged(object sender, EventArgs e)
-        {
-            Aimbot.Config.SilentAim.AutoBone = checkBox_SA_AutoBone.Checked;
-        }
-
-        private void checkBox_HeadAI_CheckedChanged(object sender, EventArgs e)
-        {
-            Aimbot.Config.HeadshotAI = checkBox_AimHeadAI.Checked;
-        }
-
-        private void checkBox_SA_SafeLock_CheckedChanged(object sender, EventArgs e)
-        {
-            Aimbot.Config.SilentAim.SafeLock = checkBox_SA_SafeLock.Checked;
         }
 
         private void checkBox_TeammateAimlines_CheckedChanged(object sender, EventArgs e)
@@ -856,45 +545,6 @@ namespace eft_dma_radar.UI.Radar
         {
             var value = trackBar_AimlineLength.Value;
             Config.AimLineLength = value;
-        }
-
-        private void radioButton_Chams_Normal_CheckedChanged(object sender, EventArgs e)
-        {
-            var enabled = radioButton_Chams_Basic.Checked;
-            if (enabled)
-                Chams.Config.Mode = ChamsManager.ChamsMode.Basic;
-        }
-
-        private void radioButton_Chams_VisCheckGlow_CheckedChanged(object sender, EventArgs e)
-        {
-            var enabled = radioButton_Chams_VisCheckGlow.Checked;
-            if (enabled)
-                Chams.Config.Mode = ChamsManager.ChamsMode.VisCheckGlow;
-            flowLayoutPanel_AdvancedChams.Enabled = enabled;
-        }
-
-        private void radioButton_Chams_VischeckFlat_CheckedChanged(object sender, EventArgs e)
-        {
-            var enabled = radioButton_Chams_VischeckFlat.Checked;
-            if (enabled)
-                Chams.Config.Mode = ChamsManager.ChamsMode.VisCheckFlat;
-            flowLayoutPanel_AdvancedChams.Enabled = enabled;
-        }
-
-        private void radioButton_Chams_VisCheckWireframe_CheckedChanged(object sender, EventArgs e)
-        {
-            var enabled = radioButton_Chams_VisCheckWireframe.Checked;
-            if (enabled)
-                Chams.Config.Mode = ChamsManager.ChamsMode.VisCheckWireframe;
-            flowLayoutPanel_AdvancedChams.Enabled = enabled;
-        }
-
-        private void radioButton_Chams_Visible_CheckedChanged(object sender, EventArgs e)
-        {
-            var enabled = radioButton_Chams_Visible.Checked;
-            if (enabled)
-                Chams.Config.Mode = ChamsManager.ChamsMode.Visible;
-            flowLayoutPanel_AdvancedChams.Enabled = enabled;
         }
 
         private void button_BackupConfig_Click(object sender, EventArgs e)
@@ -929,11 +579,6 @@ namespace eft_dma_radar.UI.Radar
             {
                 button_BackupConfig.Enabled = true;
             }
-        }
-
-        private void checkBox_AimbotDisableReLock_CheckedChanged(object sender, EventArgs e)
-        {
-            Aimbot.Config.DisableReLock = checkBox_AimbotDisableReLock.Checked;
         }
 
         /// <summary>
@@ -1045,7 +690,6 @@ namespace eft_dma_radar.UI.Radar
             // Update Widgets
             _aimview?.SetScaleFactor(newScale);
             _playerInfo?.SetScaleFactor(newScale);
-            _lootInfo?.SetScaleFactor(newScale);
 
             #region UpdatePaints
 
@@ -1170,22 +814,6 @@ namespace eft_dma_radar.UI.Radar
                 }
 
                 var mouse = new Vector2(e.X, e.Y); // Get current mouse position in control
-                
-                // Check for switches first and prioritize them
-                if (_switches?.Any() == true)
-                {
-                    foreach (var switchObj in _switches)
-                    {
-                        float distance = Vector2.Distance(switchObj.MouseoverPosition, mouse);
-                        if (distance < 12)
-                        {
-                            _mouseOverItem = switchObj;
-                            MouseoverGroup = null;
-                            return;
-                        }
-                    }
-                }
-                
                 var closest = items.Aggregate(
                     (x1, x2) => Vector2.Distance(x1.MouseoverPosition, mouse)
                                 < Vector2.Distance(x2.MouseoverPosition, mouse)
@@ -1461,67 +1089,6 @@ namespace eft_dma_radar.UI.Radar
             });
         }
 
-        private void checkBox_NoRecoil_CheckedChanged(object sender, EventArgs e)
-        {
-            var enabled = checkBox_NoRecoilSway.Checked;
-            MemWriteFeature<NoRecoil>.Instance.Enabled = enabled;
-            flowLayoutPanel_NoRecoil.Enabled = enabled;
-        }
-
-        private void checkBox_InfStamina_CheckedChanged(object sender, EventArgs e)
-        {
-            MemWriteFeature<InfStamina>.Instance.Enabled = checkBox_InfStamina.Checked;
-        }
-
-        private void TrackBar_NoSway_ValueChanged(object sender, EventArgs e)
-        {
-            var value = trackBar_NoSway.Value;
-            label_Sway.Text = $"Sway {value}";
-            MemWrites.Config.NoSwayAmount = value;
-        }
-
-        private void TrackBar_NoRecoil_ValueChanged(object sender, EventArgs e)
-        {
-            var value = trackBar_NoRecoil.Value;
-            label_Recoil.Text = $"Recoil {value}";
-            MemWrites.Config.NoRecoilAmount = value;
-        }
-
-        private void checkBox_NoVisor_CheckedChanged(object sender, EventArgs e)
-        {
-            MemWriteFeature<NoVisor>.Instance.Enabled = checkBox_NoVisor.Checked;
-        }
-
-        private void checkBox_AimBot_CheckedChanged(object sender, EventArgs e)
-        {
-            var enabled = checkBox_AimBotEnabled.Checked;
-            MemWriteFeature<Aimbot>.Instance.Enabled = enabled;
-            flowLayoutPanel_Aimbot.Enabled = enabled;
-        }
-        private void checkBox_EnableMemWrite_CheckedChanged(object sender, EventArgs e)
-        {
-            bool enabled = checkBox_EnableMemWrite.Checked;
-            if (enabled) // Enable Memory Writing
-            {
-                var dlg = MessageBox.Show(
-                    "Are you sure you want to enable Memory Writing? This is riskier than using Read-Only radar features.",
-                    "Enable Mem Writes?",
-                    MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (dlg is DialogResult.Yes)
-                {
-                    MemWrites.Enabled = enabled;
-                    flowLayoutPanel_MemWrites.Enabled = enabled;
-                }
-                else
-                    checkBox_EnableMemWrite.Checked = false;
-            }
-            else // Disable Memory Writing
-            {
-                MemWrites.Enabled = false;
-                flowLayoutPanel_MemWrites.Enabled = false;
-            }
-        }
-
         /// <summary>
         /// Loads the Hotkey Manager GUI.
         /// </summary>
@@ -1540,11 +1107,6 @@ namespace eft_dma_radar.UI.Radar
             }
         }
 
-        private void comboBox_AimbotTarget_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (comboBox_AimbotTarget.SelectedItem is BonesListItem entry) Aimbot.Config.Bone = entry.Bone;
-        }
-
         private void TrackBar_MaxDist_ValueChanged(object sender, EventArgs e)
         {
             Config.MaxDistance = trackBar_MaxDist.Value;
@@ -1559,37 +1121,6 @@ namespace eft_dma_radar.UI.Radar
             RefreshQuestHelper();
         }
 
-        private void checkBox_Chams_CheckedChanged(object sender, EventArgs e)
-        {
-            var enabled = checkBox_Chams.Checked;
-            MemWriteFeature<Chams>.Instance.Enabled = enabled;
-            flowLayoutPanel_Chams.Enabled = enabled;
-        }
-
-        private void checkBox_AlwaysDay_CheckedChanged(object sender, EventArgs e)
-        {
-            MemWriteFeature<AlwaysDaySunny>.Instance.Enabled = checkBox_AlwaysDaySunny.Checked;
-        }
-
-        private void radioButton_AimbotDefaultMode_CheckedChanged(object sender, EventArgs e)
-        {
-            if (radioButton_AimTarget_FOV.Checked)
-                Aimbot.Config.TargetingMode = Aimbot.AimbotTargetingMode.FOV;
-        }
-
-        private void radioButton_AimbotCQBMode_CheckedChanged(object sender, EventArgs e)
-        {
-            if (radioButton_AimTarget_CQB.Checked)
-                Aimbot.Config.TargetingMode = Aimbot.AimbotTargetingMode.CQB;
-        }
-
-        private void TrackBar_AimFOV_ValueChanged(object sender, EventArgs e)
-        {
-            float fov = trackBar_AimFOV.Value; // Cache value
-            Aimbot.Config.FOV = fov; // Set Global
-            label_AimFOV.Text = $"FOV {(int)fov}";
-        }
-
         private void checkBox_LootPPS_CheckedChanged(object sender, EventArgs e)
         {
             Config.LootPPS = checkBox_LootPPS.Checked;
@@ -1600,11 +1131,6 @@ namespace eft_dma_radar.UI.Radar
         {
             Config.HideCorpses = checkBox_HideCorpses.Checked;
             _lootMenuTimer.Restart();
-        }
-
-        private void checkBox_Aimview_CheckedChanged(object sender, EventArgs e)
-        {
-            Config.ESPWidgetEnabled = checkBox_Aimview.Checked;
         }
 
         private void button_Radar_ColorPicker_Click(object sender, EventArgs e)
@@ -1631,13 +1157,6 @@ namespace eft_dma_radar.UI.Radar
             {
                 button_Radar_ColorPicker.Enabled = true;
             }
-        }
-
-        private void checkBox_WideLean_CheckedChanged(object sender, EventArgs e)
-        {
-            bool enabled = checkBox_WideLean.Checked;
-            MemWriteFeature<WideLean>.Instance.Enabled = enabled;
-            flowLayoutPanel_WideLean.Enabled = enabled;
         }
 
         #endregion
@@ -1698,11 +1217,6 @@ namespace eft_dma_radar.UI.Radar
             skglControl_Radar.MouseUp += MapCanvas_MouseUp;
             skglControl_Radar.MouseDoubleClick += MapCanvas_MouseDblClick;
             dataGridView_PlayerHistory.MouseDoubleClick += dataGridView_PlayerHistory_MouseDoubleClick;
-            trackBar_AimFOV.ValueChanged += TrackBar_AimFOV_ValueChanged;
-            trackBar_NoRecoil.ValueChanged += TrackBar_NoRecoil_ValueChanged;
-            trackBar_NoSway.ValueChanged += TrackBar_NoSway_ValueChanged;
-            trackBar_WideLeanAmt.ValueChanged += TrackBar_WideLeanAmt_ValueChanged;
-            trackBar_LTWAmount.ValueChanged += TrackBar_LTWAmount_ValueChanged;
             _lootFiltersItemSearchTimer.Elapsed += impLootSearchTimer_Elapsed;
             _lootMenuTimer.Elapsed += lootMenuTimer_Elapsed;
         }
@@ -1714,8 +1228,6 @@ namespace eft_dma_radar.UI.Radar
         {
             toolTip1.SetToolTip(textBox_VischeckVisColor, "Set the VISIBLE color of the Vischeck Chams. Must be set before chams are injected.");
             toolTip1.SetToolTip(textBox_VischeckInvisColor, "Set the INVISIBLE color of the Vischeck Chams. Must be set before chams are injected.");
-            toolTip1.SetToolTip(textBox_VischeckInvisColorPMC, "Set the INVISIBLE color of the Vischeck Chams for PMCs and Bosses. Must be set before chams are injected.");
-            toolTip1.SetToolTip(textBox_VischeckVisColorPMC, "Set the INVISIBLE color of the Vischeck Chams for PMCs and Bosses. Must be set before chams are injected.");
             toolTip1.SetToolTip(button_VischeckVisColorPick, "Set the VISIBLE color of the Vischeck Chams. Must be set before chams are injected.");
             toolTip1.SetToolTip(button_VischeckInvisColorPick, "Set the INVISIBLE color of the Vischeck Chams. Must be set before chams are injected.");
             toolTip1.SetToolTip(checkBox_FastLoadUnload, "Allows you to pack/unpack magazines super fast.");
@@ -1763,8 +1275,6 @@ namespace eft_dma_radar.UI.Radar
                 "Toggles the Quest Helper feature. This will display Items and Zones that you need to pickup/visit for quests that you currently have active.");
             toolTip1.SetToolTip(checkBox_ShowInfoTab,
                 "Toggles the Player Info 'Widget' that gives you information about the players/bosses in your raid. Can be moved.");
-            toolTip1.SetToolTip(checkBox_ShowLootTab,
-                "Toggles the Loot 'Widget' that gives you information about the loot in your raid. Can be moved.");
             toolTip1.SetToolTip(checkBox_GrpConnect,
                 "Connects players that are grouped up via semi-transparent green lines. Does not apply to your own party.");
             toolTip1.SetToolTip(trackBar_AimlineLength, "Sets the Aimline Length for Local Player/Teammates");
@@ -1795,7 +1305,7 @@ namespace eft_dma_radar.UI.Radar
                 "These basic chams will only show when a target is VISIBLE. Cannot change color (always White).");
             toolTip1.SetToolTip(radioButton_Chams_Visible,
                 "These advanced chams will only show when a target is VISIBLE. You can change the color(s).");
-            toolTip1.SetToolTip(radioButton_Chams_VisCheckGlow,
+            toolTip1.SetToolTip(radioButton_Chams_Vischeck,
                 "These advanced chams (vischeck) will show different colors when a target is VISIBLE/INVISIBLE. You can change the color(s).");
             toolTip1.SetToolTip(checkBox_AlwaysDaySunny,
                 "Enables the Always Day/Sunny feature. This sets the In-Raid time to always 12 Noon (day), and sets the weather to sunny/clear.");
@@ -1815,8 +1325,8 @@ namespace eft_dma_radar.UI.Radar
                 "The resolution Height of your Game PC Monitor that Tarkov runs on. This must be correctly set for Aimview/Aimbot/ESP to function properly.");
             toolTip1.SetToolTip(button_DetectRes,
                 "Automatically detects the resolution of your Game PC Monitor that Tarkov runs on, and sets the Width/Height fields. Game must be running.");
-            toolTip1.SetToolTip(button_ToggleESP,
-                "Toggles the ESP Window. By default this will render ESP to a window with a black background. Move this window to the screen that is being fused, and double click to go Fullscreen.");
+            toolTip1.SetToolTip(button_StartESP,
+                "Starts the ESP Window. This will render ESP over a black background. Move this window to the screen that is being fused, and double click to go Fullscreen.");
             toolTip1.SetToolTip(label_ESPFPSCap,
                 "Sets an FPS Cap for the ESP Window. Generally this can be the refresh rate of your Game PC Monitor. This also helps reduce resource usage on your Radar PC.\nSetting this to 0 disables it entirely.");
             toolTip1.SetToolTip(button_EspColorPicker,
@@ -1825,7 +1335,6 @@ namespace eft_dma_radar.UI.Radar
                 "Sets the ESP Rendering Options for Human Players in Fuser ESP.");
             toolTip1.SetToolTip(flowLayoutPanel_ESP_AIRender, "Sets the ESP Rendering Options for AI Bots in Fuser ESP.");
             toolTip1.SetToolTip(checkBox_ESP_Exfils, "Enables the rendering of Exfil Points in the ESP Window.");
-            toolTip1.SetToolTip(checkBox_ESP_Switches, "Enables the rendering of Switch Points in the ESP Window.");
             toolTip1.SetToolTip(checkBox_ESP_Explosives, "Enables the rendering of Grenades in the ESP Window.");
             toolTip1.SetToolTip(checkBox_ESP_AimFov,
                 "Enables the rendering of an 'Aim FOV Circle' in the center of your ESP Window. This is used for Aimbot Targeting.");
@@ -1864,13 +1373,6 @@ namespace eft_dma_radar.UI.Radar
                 "NOTE: It is possible to 're-lock' another target (or the same target) after unlocking.");
             toolTip1.SetToolTip(checkBox_AimRandomBone, "Will select a random aimbot bone after each shot. You can set custom percentage values for body zones.\nNOTE: This will supersede silent aim 'auto bone'.");
             toolTip1.SetToolTip(button_RandomBoneCfg, "Set random bone percentages (must add up to 100%).");
-            toolTip1.SetToolTip(checkBox_WebRadarUPNP, "Attempts to automatically Port Map using UPnP. If disabled, you will need to forward port(s) manually on your Router.");
-            toolTip1.SetToolTip(button_WebRadarStart, "Starts the Web Radar Service.");
-            toolTip1.SetToolTip(label_WebRadarHost, "Sets the IP Address/Hostname for the Web Radar Service to be bound to. Usually your LAN IP.");
-            toolTip1.SetToolTip(label_WebRadarPort, "Sets the Port (TCP) for the Web Radar Service to be bound to. Recommend using a random port between 50000-60000.");
-            toolTip1.SetToolTip(label_WebRadarPassword, "Randomized password for the Web Radar Service. This is used to authenticate with the Web Radar Service.");
-            toolTip1.SetToolTip(label_WebRadarTickRate, "Sets the Server Tickrate for the Web Radar Service. This is how often (per second) the server updates the client with new data.");
-            toolTip1.SetToolTip(linkLabel_WebRadarLink, "Web Radar Link to access the Web Radar Service. You can share this with your friend(s). Click to copy to clipboard.");
             toolTip1.SetToolTip(comboBox_WideLeanMode, "Sets the Wide Lean Mode for the Wide Lean feature.\nHold = Must press and hold the hotkey to remain leaned.\nToggle = Must press the hotkey once to toggle on/off.");
             toolTip1.SetToolTip(trackBar_WideLeanAmt, "Sets the amount of lean to apply when using the Wide Lean feature. You may need to lower this if shots fail.");
             toolTip1.SetToolTip(label_WideLean, "Wide Lean allows you to move your weapon left/right/up. This can be useful for peeking corners with silent aim. Set your hotkey(s) in Hotkey Manager.");
@@ -1879,10 +1381,10 @@ namespace eft_dma_radar.UI.Radar
                 "Enables the Infinite Stamina feature. Prevents you from running out of stamina/breath, and bypasses the Fatigue debuff. Due to safety reasons you can only disable this after the raid has ended.\n" +
                 "NOTE: Your footsteps will be silent, this is normal.\n" +
                 "NOTE: You will not gain endurance/strength xp with this on.\n" +
-                "NOTE: At higher weights you may get server desync. You can try disabling 1.4 Move Speed, or reducing your weight. MULE stims help here too.\n" +
+                "NOTE: At higher weights you may get server desync. You can try disabling 1.2 Move Speed, or reducing your weight. MULE stims help here too.\n" +
                 "WARNING: This is marked as a RISKY feature since other players can see you 'gliding' instead of running and is visually noticeable.");
             toolTip1.SetToolTip(checkBox_MoveSpeed,
-                "Enables/Disables 1.4x Move Speed Feature. This causes your player to move 1.4 times faster.\n" +
+                "Enables/Disables 1.2x Move Speed Feature. This causes your player to move 1.2 times faster.\n" +
                 "NOTE: When used in conjunction with Infinite Stamina this can contribute to Server Desync at higher carry weights. Turn this off to reduce desync.\n" +
                 "WARNING: This is marked as a RISKY feature since other players can see you moving faster than normal.");
             toolTip1.SetToolTip(checkBox_ESP_FireportAim, "Shows the base fireport trajectory on screen so you can see where bullets will go. Disappears when ADS.");
@@ -1909,12 +1411,6 @@ namespace eft_dma_radar.UI.Radar
             toolTip1.SetToolTip(radioButton_Loot_VendorPrice, "Loot prices use the highest trader price for displayed loot items.");
             toolTip1.SetToolTip(checkBox_AntiPage, "Attempts to prevent memory paging out. This can help if you are experiencing 'paging out' (see the FAQ in Discord).\n" +
                 "For best results start the Radar Client BEFORE opening the Game.");
-            toolTip1.SetToolTip(checkBox_hideRaidcode, "Hides the Raid Code from displaying in the bottom left corner of the Game. Send your Cheating clips safely!");
-            toolTip1.SetToolTip(checkBox_streamerMode, "Enables Streamer Mode. This will hide your player name, change your level and other things from displaying in the Game:\n" +
-                "- To disable uncheck the box and restart game\n" +
-                "- Uses shellcode so it is a more risky feature.\n" +
-                "- Only Spoofs names, level etc locally.\n" +
-                "\n\nWARNING: These features use a riskier injection technique. Use at your own risk.");
             toolTip1.SetToolTip(checkBox_AIAimlines, "Enables dynamic aimlines for AI Players. When you are being aimed at the aimlines will extend.");
             toolTip1.SetToolTip(checkBox_LootWishlist, "Tracks loot on your account's Loot Wishlist (Manual Adds Only, does not work for Automatically Added Items).");
             toolTip1.SetToolTip(checkedListBox_QuestHelper, "Active Quest List (populates once you are in raid). Uncheck a quest to untrack it.");
@@ -1941,82 +1437,6 @@ namespace eft_dma_radar.UI.Radar
                 UIScale);
             _playerInfo = new PlayerInfoWidget(skglControl_Radar, Config.Widgets.PlayerInfoLocation,
                 Config.Widgets.PlayerInfoMinimized, UIScale);
-            _lootInfo = new LootInfoWidget(skglControl_Radar, Config.Widgets.LootInfoLocation,
-                Config.Widgets.LootInfoMinimized, UIScale);
-        }
-
-        private void SetMemWriteFeatures()
-        {
-            /// Setup Memwrites
-            checkBox_EnableMemWrite.Checked = MemWrites.Enabled;
-            flowLayoutPanel_MemWrites.Enabled = MemWrites.Enabled;
-            checkBox_AdvancedMemWrites.Checked = MemWrites.Config.AdvancedMemWrites;
-            ToggleAdvMemwriteFeatures(MemWrites.Config.AdvancedMemWrites);
-            checkBox_EnableMemWrite.CheckedChanged += checkBox_EnableMemWrite_CheckedChanged;
-            checkBox_AdvancedMemWrites.CheckedChanged += checkBox_AdvancedMemWrites_CheckedChanged;
-            /// Set Features
-            checkBox_hideRaidcode.Checked = MemPatchFeature<HideRaidCode>.Instance.Enabled;
-            checkBox_streamerMode.Checked = MemPatchFeature<StreamerMode>.Instance.Enabled;
-            checkBox_AntiPage.Checked = Config.MemWrites.AntiPage;
-            checkBox_EnableMemWrite.Checked = MemWrites.Enabled;
-            checkBox_NoRecoilSway.Checked = MemWriteFeature<NoRecoil>.Instance.Enabled;
-            trackBar_NoRecoil.Value = MemWrites.Config.NoRecoilAmount;
-            trackBar_NoSway.Value = MemWrites.Config.NoSwayAmount;
-            trackBar_WideLeanAmt.Value = MemWrites.Config.WideLean.Amount;
-            trackBar_LTWAmount.Value = MemWrites.Config.LootThroughWalls.ZoomAmount;
-
-            checkBox_LTW.Checked = MemWriteFeature<LootThroughWalls>.Instance.Enabled;
-            checkBox_MoveSpeed.Checked = MemWriteFeature<MoveSpeed>.Instance.Enabled;
-            checkBox_WideLean.Checked = MemWriteFeature<WideLean>.Instance.Enabled;
-            checkBox_AimBotEnabled.Checked = MemWriteFeature<Aimbot>.Instance.Enabled;
-            checkBox_AimbotDisableReLock.Checked = Aimbot.Config.DisableReLock;
-            comboBox_AimbotTarget.SelectedIndex =
-                comboBox_AimbotTarget.FindStringExact(Aimbot.Config.Bone.GetDescription());
-            comboBox_AimbotTarget.SelectedIndexChanged += comboBox_AimbotTarget_SelectedIndexChanged;
-            comboBox_WideLeanMode.SelectedIndex =
-                comboBox_WideLeanMode.FindStringExact(MemWrites.Config.WideLean.Mode.GetDescription());
-            comboBox_WideLeanMode.SelectedIndexChanged += comboBox_WideLeanMode_SelectedIndexChanged;
-            checkBox_SA_AutoBone.Checked = Aimbot.Config.SilentAim.AutoBone;
-            checkBox_AimHeadAI.Checked = Aimbot.Config.HeadshotAI;
-            checkBox_SA_SafeLock.Checked = Aimbot.Config.SilentAim.SafeLock;
-            checkBox_AimRandomBone.Checked = Aimbot.Config.RandomBone.Enabled;
-
-            checkBox_NoVisor.Checked = MemWriteFeature<NoVisor>.Instance.Enabled;
-            checkBox_InfStamina.Checked = MemWriteFeature<InfStamina>.Instance.Enabled;
-            checkBox_Chams.Checked = MemWriteFeature<Chams>.Instance.Enabled;
-            checkBox_AlwaysDaySunny.Checked = MemWriteFeature<AlwaysDaySunny>.Instance.Enabled;
-            checkBox_NoWepMalf.Checked = MemPatchFeature<NoWepMalfPatch>.Instance.Enabled;
-            checkBox_FullBright.Checked = MemWriteFeature<FullBright>.Instance.Enabled;
-            checkBox_FastWeaponOps.Checked = MemWriteFeature<FastWeaponOps>.Instance.Enabled;
-            checkBox_FastLoadUnload.Checked = MemPatchFeature<FastLoadUnload>.Instance.Enabled;
-
-            switch (Aimbot.Config.TargetingMode)
-            {
-                case Aimbot.AimbotTargetingMode.FOV:
-                    radioButton_AimTarget_FOV.Checked = true;
-                    break;
-                case Aimbot.AimbotTargetingMode.CQB:
-                    radioButton_AimTarget_CQB.Checked = true;
-                    break;
-            }
-            switch (Chams.Config.Mode)
-            {
-                case ChamsManager.ChamsMode.Basic:
-                    radioButton_Chams_Basic.Checked = true;
-                    break;
-                case ChamsManager.ChamsMode.VisCheckGlow:
-                    radioButton_Chams_VisCheckGlow.Checked = true;
-                    break;
-                case ChamsManager.ChamsMode.Visible:
-                    radioButton_Chams_Visible.Checked = true;
-                    break;
-                case ChamsManager.ChamsMode.VisCheckFlat:
-                    radioButton_Chams_VischeckFlat.Checked = true;
-                    break;
-                case ChamsManager.ChamsMode.VisCheckWireframe:
-                    radioButton_Chams_VisCheckWireframe.Checked = true;
-                    break;
-            }
         }
 
         private void ToggleFullscreen(bool toFullscreen)
@@ -2060,83 +1480,14 @@ namespace eft_dma_radar.UI.Radar
             if (_fpsSw.ElapsedMilliseconds >= 1000)
             {
                 var fps = Interlocked.Exchange(ref _fps, 0); // Get FPS -> Reset FPS counter
+                var title = Program.Name;
+                if (inRaid) title += $" ({fps} fps)";
+                Text = title; // Set new window title
                 _fpsSw.Restart();
             }
             else
             {
                 _fps++; // Increment FPS counter
-            }
-        }
-
-        /// <summary>
-        /// Set the status text in the top middle of the radar window.
-        /// </summary>
-        /// <param name="canvas"></param>
-        private void SetStatusText(SKCanvas canvas)
-        {
-            try
-            {
-                bool aimEnabled = checkBox_AimBotEnabled.Enabled && checkBox_AimBotEnabled.Checked;
-
-                var mode = Aimbot.Config.TargetingMode;
-                string label = null;
-                if (checkBox_RageMode.Checked)
-                    label = MemWriteFeature<Aimbot>.Instance.Enabled ? $"{mode.GetDescription()}: RAGE MODE" : "RAGE MODE";
-                else if (aimEnabled)
-                {
-                    if (Aimbot.Config.RandomBone.Enabled)
-                        label = $"{mode.GetDescription()}: Random Bone";
-                    else if (Aimbot.Config.SilentAim.AutoBone)
-                        label = $"{mode.GetDescription()}: Auto Bone";
-                    else
-                    {
-                        var defaultBone = (BonesListItem)comboBox_AimbotTarget.SelectedItem;
-                        label = $"{mode.GetDescription()}: {defaultBone!.Name}";
-                    }
-                }
-                if (MemWrites.Enabled)
-                {
-                    if (MemWriteFeature<WideLean>.Instance.Enabled)
-                    {
-                        if (label is null)
-                            label = "Lean";
-                        else
-                            label += " (Lean)";
-                    }
-                    if (MemWriteFeature<LootThroughWalls>.Instance.Enabled && LootThroughWalls.ZoomEngaged)
-                    {
-                        if (label is null)
-                            label = "LTW";
-                        else
-                            label += " (LTW)";
-                    }
-                    else if (MemWriteFeature<MoveSpeed>.Instance.Enabled)
-                    {
-                        if (label is null)
-                            label = "MOVE";
-                        else
-                            label += " (MOVE)";
-                    }
-                }
-                if (label is null)
-                    return;
-                var clientArea = skglControl_Radar.ClientRectangle;
-                var labelWidth = SKPaints.TextStatusSmall.MeasureText(label);
-                var spacing = 1f * UIScale;
-                var top = clientArea.Top + spacing;
-                var labelHeight = SKPaints.TextStatusSmall.FontSpacing;
-                var bgRect = new SKRect(
-                    clientArea.Width / 2 - labelWidth / 2,
-                    top,
-                    clientArea.Width / 2 + labelWidth / 2,
-                    top + labelHeight + spacing);
-                canvas.DrawRect(bgRect, SKPaints.PaintTransparentBacker);
-                var textLoc = new SKPoint(clientArea.Width / 2, top + labelHeight);
-                canvas.DrawText(label, textLoc, SKPaints.TextStatusSmall);
-            }
-            catch (Exception ex)
-            {
-                LoneLogging.WriteLine($"ERROR Setting Aim UI Text: {ex}");
             }
         }
 
@@ -2159,27 +1510,15 @@ namespace eft_dma_radar.UI.Radar
             checkBox_LootWishlist.Checked = Config.LootWishlist;
             checkBox_QuestHelper_Enabled.Checked = Config.QuestHelper.Enabled;
             checkBox_ShowInfoTab.Checked = Config.ShowInfoTab;
-            checkBox_ShowLootTab.Checked = Config.ShowLootTab;
             checkBox_HideCorpses.Checked = Config.HideCorpses;
             checkBox_ShowMines.Checked = Config.ShowMines;
             checkBox_TeammateAimlines.Checked = Config.TeammateAimlines;
             checkBox_AIAimlines.Checked = Config.AIAimlines;
-            checkBox_WebRadarUPNP.Checked = Config.WebRadar.UPnP;
-            textBox_WebRadarBindIP.Text = Config.WebRadar.IP;
-            textBox_WebRadarPort.Text = Config.WebRadar.Port;
-            textBox_WebRadarTickRate.Text = Config.WebRadar.TickRate;
-            textBox_WebRadarPassword.Text = WebRadarServer.Password;
             checkBox_Aimview.Checked = Config.ESPWidgetEnabled;
             trackBar_UIScale.Value = (int)Math.Round(Config.UIScale * 100);
             trackBar_MaxDist.Value = (int)Config.MaxDistance;
-            trackBar_AimFOV.Value = (int)Math.Round(Aimbot.Config.FOV);
             textBox_ResWidth.Text = Config.MonitorWidth.ToString();
             textBox_ResHeight.Text = Config.MonitorHeight.ToString();
-            textBox_VischeckVisColor.Text = Chams.Config.VisibleColor;
-            textBox_VischeckInvisColor.Text = Chams.Config.InvisibleColor;
-            textBox_VischeckInvisColorPMC.Text = Chams.Config.InvisibleColorPMC;
-            textBox_VischeckVisColorPMC.Text = Chams.Config.VisibleColorPMC;
-
             CameraManagerBase.UpdateViewportRes();
             LoadESPConfig();
             InitializeContainers();
@@ -2190,24 +1529,6 @@ namespace eft_dma_radar.UI.Radar
             textBox_LootRegValue.Text = Config.MinLootValue.ToString();
             textBox_LootImpValue.Text = Config.MinValuableLootValue.ToString();
         }
-
-        private void PopulateComboBoxes()
-        {
-            /// Aimbot Bones
-            var bones = new List<BonesListItem>();
-            foreach (var bone in Aimbot.BoneNames)
-                bones.Add(new BonesListItem(bone));
-            comboBox_AimbotTarget.Items.AddRange(bones.ToArray());
-            comboBox_AimbotTarget.SelectedIndex = comboBox_AimbotTarget.FindStringExact(Bones.HumanSpine3.GetDescription());
-            /// Wide Lean
-            var wideLeanModes = new List<HotkeyModeListItem>();
-            foreach (var wlMode in Enum.GetValues(typeof(HotkeyMode)).Cast<HotkeyMode>())
-                wideLeanModes.Add(new HotkeyModeListItem(wlMode));
-            comboBox_WideLeanMode.Items.AddRange(wideLeanModes.ToArray());
-            comboBox_WideLeanMode.SelectedIndex = comboBox_WideLeanMode.FindStringExact(HotkeyMode.Hold.GetDescription());
-        }
-
-
 
         /// <summary>
         /// Zooms the bitmap 'in'.
@@ -2309,11 +1630,8 @@ namespace eft_dma_radar.UI.Radar
                 Config.Widgets.AimviewMinimized = _aimview.Minimized;
                 Config.Widgets.PlayerInfoLocation = _playerInfo.Rectangle;
                 Config.Widgets.PlayerInfoMinimized = _playerInfo.Minimized;
-                Config.Widgets.LootInfoLocation = _lootInfo.Rectangle;
-                Config.Widgets.LootInfoMinimized = _lootInfo.Minimized;
                 Config.AimLineLength = trackBar_AimlineLength.Value;
                 Config.ShowInfoTab = checkBox_ShowInfoTab.Checked;
-                Config.ShowLootTab = checkBox_ShowLootTab.Checked;
                 Config.HideNames = checkBox_HideNames.Checked;
                 Config.ShowMines = checkBox_ShowMines.Checked;
                 Config.ConnectGroups = checkBox_GrpConnect.Checked;
@@ -2370,12 +1688,6 @@ namespace eft_dma_radar.UI.Radar
         /// </summary>
         protected override void OnMouseWheel(MouseEventArgs e)
         {
-            if (_lootInfo?.IsMouseOverWidget(GetMousePosition()) == true)
-            {
-                _lootInfo.OnMouseScroll(e.Delta);
-                return; // Prevents map zooming when scrolling over loot widget
-            }
-
             if (tabControl1.SelectedIndex == 0) // Main Radar Tab should be open
             {
                 if (e.Delta > 0) // mouse wheel up (zoom in)
@@ -2431,48 +1743,14 @@ namespace eft_dma_radar.UI.Radar
             toggleNames.HotkeyStateChanged += ToggleNames_HotkeyStateChanged;
             var toggleInfo = new HotkeyActionController("Toggle Game Info Tab");
             toggleInfo.HotkeyStateChanged += ToggleInfo_HotkeyStateChanged;
-            var toggleLootInfo = new HotkeyActionController("Toggle Loot Info Tab");
-            toggleLootInfo.HotkeyStateChanged += ToggleLootInfo_HotkeyStateChanged;
-            var engageAimbot = new HotkeyActionController("Engage Aimbot");
-            engageAimbot.HotkeyStateChanged += EngageAimbot_HotkeyStateChanged;
-            var toggleAimbotBone = new HotkeyActionController("Toggle Aimbot Bone");
-            toggleAimbotBone.HotkeyStateChanged += ToggleAimbotBone_HotkeyStateChanged;
-            var toggleAimbotMode = new HotkeyActionController("Toggle Aimbot Mode");
-            toggleAimbotMode.HotkeyStateChanged += ToggleAimbotMode_HotkeyStateChanged;
             var toggleQuestHelper = new HotkeyActionController("Toggle Quest Helper");
             toggleQuestHelper.HotkeyStateChanged += ToggleQuestHelper_HotkeyStateChanged;
             var toggleShowFood = new HotkeyActionController("Toggle Show Food");
             toggleShowFood.HotkeyStateChanged += ToggleShowFood_HotkeyStateChanged;
             var toggleShowMeds = new HotkeyActionController("Toggle Show Meds");
             toggleShowMeds.HotkeyStateChanged += ToggleShowMeds_HotkeyStateChanged;
-            var toggleNoRecoil = new HotkeyActionController("Toggle No Recoil/Sway");
-            toggleNoRecoil.HotkeyStateChanged += ToggleNoRecoil_HotkeyStateChanged;
-            var toggleRageMode = new HotkeyActionController("Toggle Rage Mode");
-            toggleRageMode.HotkeyStateChanged += ToggleRageMode_HotkeyStateChanged;
             var toggleEsp = new HotkeyActionController("Toggle ESP");
             toggleEsp.HotkeyStateChanged += ToggleEsp_HotkeyStateChanged;
-            var toggleAutoBone = new HotkeyActionController("Toggle Auto Bone (Silent Aim)");
-            toggleAutoBone.HotkeyStateChanged += ToggleAutoBone_HotkeyStateChanged;
-            var toggleRandomBone = new HotkeyActionController("Toggle Random Bone (Aimbot)");
-            toggleRandomBone.HotkeyStateChanged += ToggleRandomBone_HotkeyStateChanged;
-            var toggleSafeLock = new HotkeyActionController("Toggle Safe Lock (Silent Aim)");
-            toggleSafeLock.HotkeyStateChanged += ToggleSafeLock_HotkeyStateChanged;
-            var wideLeanLeft = new HotkeyActionController("Wide Lean Left");
-            wideLeanLeft.HotkeyStateChanged += WideLeanLeft_HotkeyStateChanged;
-            var wideLeanRight = new HotkeyActionController("Wide Lean Right");
-            wideLeanRight.HotkeyStateChanged += WideLeanRight_HotkeyStateChanged;
-            var wideLeanUp = new HotkeyActionController("Wide Lean Up");
-            wideLeanUp.HotkeyStateChanged += WideLeanUp_HotkeyStateChanged;
-            var toggleWideLean = new HotkeyActionController("Toggle Wide Lean");
-            toggleWideLean.HotkeyStateChanged += ToggleWideLean_HotkeyStateChanged;
-            var toggleLTW = new HotkeyActionController("Toggle LTW Zoom");
-            toggleLTW.HotkeyStateChanged += ToggleLTW_HotkeyStateChanged;
-            var toggleMoveSpeed = new HotkeyActionController("Toggle Move Speed");
-            toggleMoveSpeed.HotkeyStateChanged += ToggleMoveSpeed_HotkeyStateChanged;
-            var toggleFullBright = new HotkeyActionController("Toggle Full Bright");
-            toggleFullBright.HotkeyStateChanged += ToggleFullBright_HotkeyStateChanged;
-            var toggleFastWeaponOps = new HotkeyActionController("Toggle Fast Weapon Ops");
-            toggleFastWeaponOps.HotkeyStateChanged += ToggleFastWeaponOps_HotkeyStateChanged;
             // Add to Static Collection:
             HotkeyManager.RegisterActionController(zoomIn);
             HotkeyManager.RegisterActionController(zoomOut);
@@ -2480,199 +1758,16 @@ namespace eft_dma_radar.UI.Radar
             HotkeyManager.RegisterActionController(toggleESPWidget);
             HotkeyManager.RegisterActionController(toggleNames);
             HotkeyManager.RegisterActionController(toggleInfo);
-            HotkeyManager.RegisterActionController(toggleLootInfo);
-            HotkeyManager.RegisterActionController(engageAimbot);
-            HotkeyManager.RegisterActionController(toggleAimbotBone);
-            HotkeyManager.RegisterActionController(toggleAimbotMode);
             HotkeyManager.RegisterActionController(toggleQuestHelper);
             HotkeyManager.RegisterActionController(toggleShowFood);
             HotkeyManager.RegisterActionController(toggleShowMeds);
-            HotkeyManager.RegisterActionController(toggleNoRecoil);
-            HotkeyManager.RegisterActionController(toggleRageMode);
             HotkeyManager.RegisterActionController(toggleEsp);
-            HotkeyManager.RegisterActionController(toggleAutoBone);
-            HotkeyManager.RegisterActionController(toggleRandomBone);
-            HotkeyManager.RegisterActionController(toggleSafeLock);
-            HotkeyManager.RegisterActionController(wideLeanLeft);
-            HotkeyManager.RegisterActionController(wideLeanRight);
-            HotkeyManager.RegisterActionController(wideLeanUp);
-            HotkeyManager.RegisterActionController(toggleWideLean);
-            HotkeyManager.RegisterActionController(toggleLTW);
-            HotkeyManager.RegisterActionController(toggleMoveSpeed);
-            HotkeyManager.RegisterActionController(toggleFullBright);
-            HotkeyManager.RegisterActionController(toggleFastWeaponOps);
-        }
-
-        private void ToggleFastWeaponOps_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State)
-            {
-                checkBox_FastWeaponOps.Checked = !checkBox_FastWeaponOps.Checked;
-            }
-        }
-
-        private void ToggleFullBright_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State)
-            {
-                checkBox_FullBright.Checked = !checkBox_FullBright.Checked;
-            }
-        }
-
-        private void ToggleMoveSpeed_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State)
-            {
-                checkBox_MoveSpeed.Checked = !checkBox_MoveSpeed.Checked;
-            }
-        }
-
-        private void ToggleLTW_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State)
-            {
-                LootThroughWalls.ZoomEngaged = !LootThroughWalls.ZoomEngaged;
-            }
-        }
-
-        private void ToggleWideLean_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State)
-            {
-                checkBox_WideLean.Checked = !checkBox_WideLean.Checked;
-                if (!checkBox_WideLean.Checked)
-                    WideLean.Direction = WideLean.EWideLeanDirection.Off;
-            }
-        }
-
-        private void WideLeanUp_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (!checkBox_WideLean.Checked)
-            {
-                WideLean.Direction = WideLean.EWideLeanDirection.Off;
-                return;
-            }
-            bool isValid = WideLean.Direction is WideLean.EWideLeanDirection.Off ||
-                    WideLean.Direction is WideLean.EWideLeanDirection.Up;
-            if (MemWrites.Config.WideLean.Mode is HotkeyMode.Hold)
-            {
-                if (isValid)
-                {
-                    WideLean.Direction = e.State ? WideLean.EWideLeanDirection.Up : WideLean.EWideLeanDirection.Off;
-                }
-            }
-            else
-            {
-                if (e.State)
-                {
-                    if (isValid)
-                        WideLean.Direction = WideLean.Direction is WideLean.EWideLeanDirection.Off ?
-                            WideLean.EWideLeanDirection.Up
-                            : WideLean.EWideLeanDirection.Off;
-                    else
-                        WideLean.Direction = WideLean.EWideLeanDirection.Off;
-                }
-            }
-        }
-
-        private void WideLeanRight_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (!checkBox_WideLean.Checked)
-            {
-                WideLean.Direction = WideLean.EWideLeanDirection.Off;
-                return;
-            }
-            bool isValid = WideLean.Direction is WideLean.EWideLeanDirection.Off ||
-                    WideLean.Direction is WideLean.EWideLeanDirection.Right;
-            if (MemWrites.Config.WideLean.Mode is HotkeyMode.Hold)
-            {
-                if (isValid)
-                {
-                    WideLean.Direction = e.State ? WideLean.EWideLeanDirection.Right : WideLean.EWideLeanDirection.Off;
-                }
-            }
-            else
-            {
-                if (e.State)
-                {
-                    if (isValid)
-                        WideLean.Direction = WideLean.Direction is WideLean.EWideLeanDirection.Off ?
-                            WideLean.EWideLeanDirection.Right
-                            : WideLean.EWideLeanDirection.Off;
-                    else
-                        WideLean.Direction = WideLean.EWideLeanDirection.Off;
-                }
-            }
-        }
-
-        private void WideLeanLeft_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (!checkBox_WideLean.Checked)
-            {
-                WideLean.Direction = WideLean.EWideLeanDirection.Off;
-                return;
-            }
-            bool isValid = WideLean.Direction is WideLean.EWideLeanDirection.Off ||
-                    WideLean.Direction is WideLean.EWideLeanDirection.Left;
-            if (MemWrites.Config.WideLean.Mode is HotkeyMode.Hold)
-            {
-                if (isValid)
-                {
-                    WideLean.Direction = e.State ? WideLean.EWideLeanDirection.Left : WideLean.EWideLeanDirection.Off;
-                }
-            }
-            else
-            {
-                if (e.State)
-                {
-                    if (isValid)
-                        WideLean.Direction = WideLean.Direction is WideLean.EWideLeanDirection.Off ?
-                            WideLean.EWideLeanDirection.Left
-                            : WideLean.EWideLeanDirection.Off;
-                    else
-                        WideLean.Direction = WideLean.EWideLeanDirection.Off;
-                }
-            }
-        }
-
-        private void ToggleRageMode_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State && checkBox_RageMode.Enabled)
-                checkBox_RageMode.Checked = !checkBox_RageMode.Checked;
-        }
-
-        private void ToggleSafeLock_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State)
-            {
-                checkBox_SA_SafeLock.Checked = !checkBox_SA_SafeLock.Checked;
-            }
-        }
-
-        private void ToggleRandomBone_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State && flowLayoutPanel_Aimbot.Enabled)
-                checkBox_AimRandomBone.Checked = !checkBox_AimRandomBone.Checked;
-        }
-
-        private void ToggleAutoBone_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State)
-            {
-                checkBox_SA_AutoBone.Checked = !checkBox_SA_AutoBone.Checked;
-            }
         }
 
         private void ToggleEsp_HotkeyStateChanged(object sender, HotkeyEventArgs e)
         {
             if (e.State && CameraManagerBase.EspRunning)
                 EspForm.ShowESP = !EspForm.ShowESP;
-        }
-
-        private void ToggleNoRecoil_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State && checkBox_NoRecoilSway.Enabled)
-                checkBox_NoRecoilSway.Checked = !checkBox_NoRecoilSway.Checked;
         }
 
         private void ToggleShowMeds_HotkeyStateChanged(object sender, HotkeyEventArgs e)
@@ -2695,39 +1790,16 @@ namespace eft_dma_radar.UI.Radar
             }
         }
 
-        private void ToggleAimbotMode_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State && checkBox_AimBotEnabled.Checked)
-                ToggleAimbotMode();
-        }
-
         private void ToggleQuestHelper_HotkeyStateChanged(object sender, HotkeyEventArgs e)
         {
             if (e.State) // Only if enabled & Primary Window
                 Config.QuestHelper.Enabled = !Config.QuestHelper.Enabled;
         }
 
-        private void ToggleAimbotBone_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State && comboBox_AimbotTarget.Enabled)
-                ToggleAimbotBone();
-        }
-
-        private void EngageAimbot_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            Aimbot.Engaged = e.State;
-        }
-
         private void ToggleInfo_HotkeyStateChanged(object sender, HotkeyEventArgs e)
         {
             if (e.State)
                 checkBox_ShowInfoTab.Checked = !checkBox_ShowInfoTab.Checked;
-        }
-
-        private void ToggleLootInfo_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State)
-                checkBox_ShowLootTab.Checked = !checkBox_ShowLootTab.Checked;
         }
 
         private void ToggleNames_HotkeyStateChanged(object sender, HotkeyEventArgs e)
@@ -2816,20 +1888,16 @@ namespace eft_dma_radar.UI.Radar
             checkBox_ESPAIRender_Dist.Checked = Config.ESP.AIRendering.ShowDist;
             textBox_EspFpsCap.Text = Config.ESP.FPSCap.ToString();
             checkBox_ESP_Exfils.Checked = Config.ESP.ShowExfils;
-            checkBox_ESP_Switches.Checked = Config.ESP.ShowSwitches;
             checkBox_ESP_Loot.Checked = Config.ESP.ShowLoot;
             checkBox_ESP_Explosives.Checked = Config.ESP.ShowExplosives;
             checkBox_ESP_AimFov.Checked = Config.ESP.ShowAimFOV;
             checkBox_ESP_Dist.Checked = Config.ESP.ShowDistances;
-            checkBox_ESP_AimLock.Checked = Config.ESP.ShowAimLock;
             checkBox_ESP_FireportAim.Checked = Config.ESP.ShowFireportAim;
             checkBox_ESP_ShowMines.Checked = Config.ESP.ShowMines;
             checkBox_ESP_ShowMag.Checked = Config.ESP.ShowMagazine;
             checkBox_ESP_RaidStats.Checked = Config.ESP.ShowRaidStats;
             checkBox_ESP_StatusText.Checked = Config.ESP.ShowStatusText;
             checkBox_ESP_FPS.Checked = Config.ESP.ShowFPS;
-            checkBox_ESP_ClickThrough.Checked = Config.ESP.ClickThrough;
-            checkBox_ESP_AlwaysOnTop.Checked = Config.ESP.AlwaysOnTop;
             trackBar_EspLootDist.Value = (int)Config.ESP.LootDrawDistance;
             trackBar_EspImpLootDist.Value = (int)Config.ESP.ImpLootDrawDistance;
             trackBar_EspQuestHelperDist.Value = (int)Config.ESP.QuestHelperDrawDistance;
@@ -2863,13 +1931,7 @@ namespace eft_dma_radar.UI.Radar
 
             comboBox_ESPAutoFS.SelectedIndex = Config.ESP.SelectedScreen;
             if (checkBox_ESP_AutoFS.Checked)
-                ToggleESP();
-            if (checkBox_ESP_AlwaysOnTop.Checked)
-                ApplyESPAlwaysOnTop();
-            if (checkBox_ESP_ClickThrough.Checked)
-                ApplyESPClickThrough();
-
-
+                StartESP();
         }
 
         private void TrackBar_ESPContainerDist_ValueChanged(object sender, EventArgs e)
@@ -2892,77 +1954,43 @@ namespace eft_dma_radar.UI.Radar
                 Config.ESP.SelectedScreen = entry.ScreenNumber;
         }
 
-        private void button_ToggleESP_Click(object sender, EventArgs e) =>
-            ToggleESP();
+        private void button_StartESP_Click(object sender, EventArgs e) =>
+            StartESP();
 
-        private Thread espThread;
-
-        private void ToggleESP()
+        private void StartESP()
         {
-            if (EspForm.Window == null || EspForm.Window.IsDisposed)
+            button_StartESP.Text = "Running...";
+            flowLayoutPanel_ESPSettings.Enabled = false;
+            flowLayoutPanel_MonitorSettings.Enabled = false;
+            var t = new Thread(() =>
             {
-                // Start ESP
-                espThread = new Thread(() =>
+                try
                 {
-                    try
-                    {
-                        EspForm.ShowESP = true;
-                        Application.Run(new EspForm());
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show("ESP Critical Runtime Error! " + ex, Program.Name, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                    finally
-                    {
-                        this.Invoke(() =>
-                        {
-                            button_ToggleESP.Text = "Start ESP";
-                        });
-                    }
-                })
+                    EspForm.ShowESP = true;
+                    Application.Run(new EspForm());
+                }
+                catch (Exception ex)
                 {
-                    IsBackground = true,
-                    Priority = ThreadPriority.AboveNormal
-                };
-                espThread.SetApartmentState(ApartmentState.STA);
-                espThread.Start();
-                button_ToggleESP.Text = "Stop ESP";
-            }
-            else
+                    MessageBox.Show("ESP Critical Runtime Error! " + ex, Program.Name, MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    Invoke(() =>
+                    {
+                        button_StartESP.Text = "Start ESP";
+                        flowLayoutPanel_ESPSettings.Enabled = true;
+                        flowLayoutPanel_MonitorSettings.Enabled = true;
+                    });
+                }
+            })
             {
-                // Stop ESP
-                this.Invoke(() =>
-                {
-                    if (EspForm.Window != null && !EspForm.Window.IsDisposed)
-                    {
-                        EspForm.Window.Invoke(() => EspForm.Window.Close());
-                        //EspForm.Window.Dispose();
-                    }
-                    button_ToggleESP.Text = "Start ESP";
-                });
-            }
-        }
-
-        private void ApplyESPAlwaysOnTop()
-        {
-            if (EspForm.Window != null)
-            {
-                EspForm.Window.Invoke(() =>
-                {
-                    EspForm.Window.TopMost = Config.ESP.AlwaysOnTop;
-                });
-            }
-        }
-        private void ApplyESPClickThrough()
-        {
-            if (EspForm.Window != null)
-            {
-                EspForm.Window.Invoke(() =>
-                {
-                    EspForm.Window.SetClickThrough(checkBox_ESP_ClickThrough.Checked);
-                });
-            }
+                IsBackground = true,
+                Priority = ThreadPriority.AboveNormal
+            };
+            t.SetApartmentState(ApartmentState.STA);
+            t.Start();
+            tabControl1.SelectedIndex = 0; // Switch back to Radar
         }
 
         private void textBox_EspFpsCap_TextChanged(object sender, EventArgs e)
@@ -3021,10 +2049,6 @@ namespace eft_dma_radar.UI.Radar
         {
             Config.ESP.ShowExfils = checkBox_ESP_Exfils.Checked;
         }
-        private void checkBox_ESP_Switches_CheckedChanged(object sender, EventArgs e)
-        {
-            Config.ESP.ShowSwitches = checkBox_ESP_Switches.Checked;
-        }
 
         private void checkBox_ESP_Explosives_CheckedChanged(object sender, EventArgs e)
         {
@@ -3036,51 +2060,9 @@ namespace eft_dma_radar.UI.Radar
             Config.ESP.ShowFPS = checkBox_ESP_FPS.Checked;
         }
 
-        private void checkBox_ESP_ClickThrough_CheckedChanged(object sender, EventArgs e)
-        {
-            Config.ESP.ClickThrough = checkBox_ESP_ClickThrough.Checked;
-
-            if (EspForm.Window != null)
-            {
-                // Using Invoke to update the clickthrough state from the UI thread
-                if (Config.ESP.ClickThrough)
-                {
-                    EspForm.Window.Invoke(() =>
-                    {
-                        EspForm.Window.SetClickThrough(true);
-                        EspForm.Window.ApplyChromaKey(0x000000);
-                    });
-                }
-                else
-                {
-                    EspForm.Window.Invoke(() =>
-                    {
-                        EspForm.Window.SetClickThrough(false);
-                        //EspForm.Window.RemoveChromaKey();
-                    });
-                }
-            }
-        }
-
-        private void checkBox_ESP_AlwaysOnTop_CheckedChanged(object sender, EventArgs e)
-        {
-            Config.ESP.AlwaysOnTop = checkBox_ESP_AlwaysOnTop.Checked;
-            ApplyESPAlwaysOnTop();
-        }
-
-        private void checkBox_ESP_AimFov_CheckedChanged(object sender, EventArgs e)
-        {
-            Config.ESP.ShowAimFOV = checkBox_ESP_AimFov.Checked;
-        }
-
         private void checkBox_ESP_Dist_CheckedChanged(object sender, EventArgs e)
         {
             Config.ESP.ShowDistances = checkBox_ESP_Dist.Checked;
-        }
-
-        private void checkBox_ESP_AimLock_CheckedChanged(object sender, EventArgs e)
-        {
-            Config.ESP.ShowAimLock = checkBox_ESP_AimLock.Checked;
         }
 
         private void checkBox_ESP_Loot_CheckedChanged(object sender, EventArgs e)
@@ -3369,7 +2351,6 @@ namespace eft_dma_radar.UI.Radar
             AutoReset = false,
             Interval = 250
         };
-        private List<Tarkov.GameWorld.Exits.Switch> _switches = new List<Tarkov.GameWorld.Exits.Switch>();
         /// <summary>
         /// Current selected Tarkov Market Item in the Loot Filters UI.
         /// </summary>
@@ -3704,89 +2685,6 @@ namespace eft_dma_radar.UI.Radar
 
         #endregion
 
-        #region Web Radar
-
-        /// <summary>
-        /// Startup Web Radar. Can only be done once for the program lifetime.
-        /// </summary>
-        private async void StartWebRadar()
-        {
-            button_WebRadarStart.Enabled = false;
-            checkBox_WebRadarUPNP.Enabled = false;
-            textBox_WebRadarTickRate.Enabled = false;
-            textBox_WebRadarBindIP.Enabled = false;
-            textBox_WebRadarPort.Enabled = false;
-            button_WebRadarStart.Text = "Starting...";
-            try
-            {
-                var tickRate = TimeSpan.FromMilliseconds(1000d / int.Parse(textBox_WebRadarTickRate.Text.Trim()));
-                string bindIP = textBox_WebRadarBindIP.Text.Trim();
-                int port = int.Parse(textBox_WebRadarPort.Text.Trim());
-                var externalIP = await WebRadarServer.GetExternalIPAsync();
-                await WebRadarServer.StartAsync(bindIP, port, tickRate, checkBox_WebRadarUPNP.Checked);
-                button_WebRadarStart.Text = "Running...";
-                linkLabel_WebRadarLink.Text = $"http://fd-mambo.org:8080/?host={externalIP}&port={port}&password={textBox_WebRadarPassword.Text}";
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, $"ERROR Starting Web Radar Server: {ex.Message}", Program.Name, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                button_WebRadarStart.Text = "Start";
-                button_WebRadarStart.Enabled = true;
-                checkBox_WebRadarUPNP.Enabled = true;
-                textBox_WebRadarTickRate.Enabled = true;
-                textBox_WebRadarBindIP.Enabled = true;
-                textBox_WebRadarPort.Enabled = true;
-            }
-        }
-        private async void StartWebEsp()
-        {
-            button_EspServerStart.Text = "Starting...";
-            try
-            {
-                string bindIP = textBox_WebRadarBindIP.Text.Trim();
-                int port = int.Parse(textBox_WebRadarPort.Text.Trim());
-                var externalIP = await WebRadarServer.GetExternalIPAsync();
-                await EspServer.StartEspServer(bindIP, port);
-                button_EspServerStart.Text = "Running...";
-                linkLabel_WebRadarLink.Text = $"host={bindIP}&port={port}&password={textBox_WebRadarPassword.Text}";
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, $"ERROR Starting Esp Radar Server: {ex.Message}", Program.Name, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                button_EspServerStart.Text = "Start";
-            }
-        }
-
-        private void button_WebRadarStart_Click(object sender, EventArgs e) =>
-            StartWebRadar();
-        private void button_EspServerStart_Click(object sender, EventArgs e) => 
-            StartWebEsp();
-
-        private void checkBox_WebRadarUPNP_CheckedChanged(object sender, EventArgs e)
-        {
-            Config.WebRadar.UPnP = checkBox_WebRadarUPNP.Checked;
-        }
-
-        private void textBox_WebRadarHost_TextChanged(object sender, EventArgs e)
-        {
-            Config.WebRadar.IP = textBox_WebRadarBindIP.Text;
-        }
-
-        private void textBox_WebRadarPort_TextChanged(object sender, EventArgs e)
-        {
-            Config.WebRadar.Port = textBox_WebRadarPort.Text;
-        }
-        private void textBox_WebRadarTickRate_TextChanged(object sender, EventArgs e)
-        {
-            Config.WebRadar.TickRate = textBox_WebRadarTickRate.Text;
-        }
-        private void linkLabel_WebRadarLink_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
-        {
-            Clipboard.SetText(linkLabel_WebRadarLink.Text);
-            MessageBox.Show(this, "Copied to clipboard!");
-        }
-        #endregion
-
         #region Containers
         /// <summary>
         /// Tracked Containers Dictionary.
@@ -3903,23 +2801,12 @@ namespace eft_dma_radar.UI.Radar
 
         private void linkLabel_CheckForUpdates_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            const string updatesUrl = "https://lone-eft.com/opensource";
+            const string updatesUrl = "https://lone-eft.com/ongoingsupport";
             Process.Start(new ProcessStartInfo()
             {
                 FileName = updatesUrl,
                 UseShellExecute = true
             });
-        }
-        private void UpdateSwitches()
-        {
-            _switches.Clear();
-            if (GameData.Switches.TryGetValue(MapID, out var switchesDict))
-            {
-                foreach (var kvp in switchesDict)
-                {
-                    _switches.Add(new Tarkov.GameWorld.Exits.Switch(kvp.Value, kvp.Key));
-                }
-            }
         }
     }
 }

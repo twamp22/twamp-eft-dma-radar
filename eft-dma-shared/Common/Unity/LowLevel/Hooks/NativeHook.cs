@@ -1,6 +1,5 @@
 ﻿using eft_dma_shared.Common.DMA;
 using eft_dma_shared.Common.Misc;
-using eft_dma_shared.Common.Misc.Commercial;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Reflection;
@@ -11,13 +10,6 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
     public static class NativeHook
     {
         private static readonly Stopwatch _ratelimit = new();
-
-        // Backing Fields
-        private static ulong _codeCave;
-        private static ulong _unityPlayerDll;
-        private static ulong _monoDll;
-        private static ulong _hookedMonoFuncAddress;
-        private static ulong _hookedMonoFunc;
 
         /// <summary>
         /// Low Level Cache Access.
@@ -33,28 +25,28 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
         /// ShellCodeData struct is placed here at 0x0.
         /// Order 1
         /// </summary>
-        internal static ulong CodeCave => _codeCave.Deobfuscate();
+        internal static ulong CodeCave { get; private set; }
         /// <summary>
         /// MonoRuntimeInvoke Address.
         /// </summary>
-        private static ulong HookedMonoFuncAddress => _hookedMonoFuncAddress.Deobfuscate();
+        private static ulong HookedMonoFuncAddress { get; set; }
         /// <summary>
         /// Original MonoRuntimeInvoke Function Address.
         /// </summary>
-        private static ulong HookedMonoFunc => _hookedMonoFunc.Deobfuscate();
+        private static ulong HookedMonoFunc { get; set; }
         /// <summary>
         /// UnityPlayer.dll Base Addr
         /// </summary>
-        internal static ulong UnityPlayerDll => _unityPlayerDll.Deobfuscate();
+        internal static ulong UnityPlayerDll { get; private set; }
         /// <summary>
         /// mono-2.0-bdwgc.dll Base Addr
         /// </summary>
-        internal static ulong MonoDll => _monoDll.Deobfuscate();
+        internal static ulong MonoDll { get; private set; }
 
         /// <summary>
         /// True if NativeHook is initialized, otherwise False.
         /// </summary>
-        public static bool Initialized => _codeCave != 0x0;
+        public static bool Initialized => CodeCave != 0x0;
         /// <summary>
         /// Hook Fn Address (within the code cave).
         /// Order 2
@@ -75,14 +67,12 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
         {
             lock (SyncRoot)
             {
-                _codeCave = default;
-                _hookedMonoFuncAddress = default;
-                _hookedMonoFunc = default;
-                _unityPlayerDll = default;
-                _monoDll = default;
-                ChamsManager.Reset();
+                CodeCave = default;
+                HookedMonoFuncAddress = default;
+                HookedMonoFunc = default;
+                UnityPlayerDll = default;
+                MonoDll = default;
                 AssetFactory.Reset();
-                AntiPage.Reset();
                 _ratelimit.Reset();
             }
         }
@@ -92,12 +82,11 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
         /// Invoke Hook Fn Bytes for our code cave. This is the shellcode that will be executed by the ~IAT hook.
         /// </summary>
         /// <returns>Byte array</returns>
-        [Obfuscation(Feature = "Virtualization", Exclude = false)]
         private static byte[] GetInvokeHookShellcode()
         {
             return new byte[]
             {
-                0x48, 0x83, 0xEC, 0x38, 0x48, 0xB8, 0xFA, 0xFA, // 6
+                0x48, 0x83, 0xEC, 0x38, 0x48, 0xB8, 0xFA, 0xFA,
                 0xFA, 0xFA, 0xFA, 0xFA, 0xFA, 0xFA, 0x48, 0x89,
                 0x44, 0x24, 0x28, 0x48, 0x8B, 0x44, 0x24, 0x28,
                 0x33, 0xC9, 0x86, 0x08, 0x8A, 0xC1, 0x84, 0xC0,
@@ -131,8 +120,6 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
             {
                 if (Initialized)
                     return true; // Already init
-                if (!SharedProgram.Config.MemWritesEnabled || !SharedProgram.Config.AdvancedMemWrites)
-                    return false;
                 if (_ratelimit.Elapsed < TimeSpan.FromSeconds(10))
                 {
                     _ratelimit.Start();
@@ -153,13 +140,13 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
                     ulong monoDll = Memory.MonoBase;
                     unityDll.ThrowIfInvalidVirtualAddress();
                     monoDll.ThrowIfInvalidVirtualAddress();
-                    _unityPlayerDll = unityDll.Obfuscate();
-                    _monoDll = monoDll.Obfuscate();
+                    UnityPlayerDll = unityDll;
+                    MonoDll = monoDll;
                     ulong hookedMonoFuncAddr = unityDll + NativeOffsets.mono_gc_is_incremental;
                     ulong hookedMonoFunc = Memory.ReadValueEnsure<ulong>(hookedMonoFuncAddr);
                     hookedMonoFunc.ThrowIfInvalidVirtualAddress();
-                    _hookedMonoFuncAddress = hookedMonoFuncAddr.Obfuscate();
-                    _hookedMonoFunc = hookedMonoFunc.Obfuscate();
+                    HookedMonoFuncAddress = hookedMonoFuncAddr;
+                    HookedMonoFunc = hookedMonoFunc;
 
                     // Read original bytes from first code cave
                     ulong invokeHookFunction = MemDMABase.AlignAddress(preCodeCave + (uint)sizeof(ShellCodeData)) + 8;
@@ -172,10 +159,11 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
                     // Prepare data structures
                     var invokeHookBytes = GetInvokeHookShellcode();
                     BinaryPrimitives.WriteUInt64LittleEndian(invokeHookBytes.AsSpan(6), preCodeCave);
-                    // Place pre-invoke hook shellcode within code cave
-                    Memory.WriteBufferEnsure(invokeHookFunction, invokeHookBytes.AsSpan());
+                    // Disabled in read-only branch:
+                    // Memory.WriteBufferEnsure(invokeHookFunction, invokeHookBytes.AsSpan());
+                    LoneLogging.WriteLine("[NativeHook]: Skipping writing pre-invoke hook shellcode (read-only).");
                     // Partial Success -> Set Field
-                    _codeCave = preCodeCave.Obfuscate();
+                    CodeCave = preCodeCave;
 
                     // Alloc RWX Region to move shellcode to
                     ulong codeCave = NativeMethods.AllocRWX(); // lock re-entrancy is OK
@@ -183,16 +171,18 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
                     // Place final invoke hook shellcode within code cave in new RWX region
                     invokeHookFunction = MemDMABase.AlignAddress(codeCave + (uint)sizeof(ShellCodeData)) + 8;
                     BinaryPrimitives.WriteUInt64LittleEndian(invokeHookBytes.AsSpan(6), codeCave);
-                    Memory.WriteBufferEnsure(invokeHookFunction, invokeHookBytes.AsSpan());
+                    // Disabled in read-only branch:
+                    // Memory.WriteBufferEnsure(invokeHookFunction, invokeHookBytes.AsSpan());
+                    LoneLogging.WriteLine("[NativeHook]: Skipping writing final invoke hook shellcode (read-only).");
                     // Success -> Set Cache
-                    _codeCave = codeCave.Obfuscate();
+                    CodeCave = codeCave;
                     SetCache();
-                    LoneLogging.WriteLine("[NativeHook]: Initialize() -> OK");
+                    LoneLogging.WriteLine("[NativeHook]: Initialize() -> OK (read-only mode, writes disabled)");
                     return true;
                 }
                 catch (Exception ex)
                 {
-                    _codeCave = default;
+                    CodeCave = default;
                     LoneLogging.WriteLine($"[NativeHook]: Initialize() -> Exception: {ex}");
                     return false;
                 }
@@ -205,7 +195,9 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
                         {
                             try
                             {
-                                Memory.WriteBufferEnsure(preCodeCave, orig.AsSpan());
+                                // Disabled in read-only branch:
+                                // Memory.WriteBufferEnsure(preCodeCave, orig.AsSpan());
+                                LoneLogging.WriteLine("[NativeHook]: Skipping restoration of original bytes (read-only).");
                                 break;
                             }
                             catch { Thread.Sleep(1); }
@@ -220,16 +212,15 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
         /// </summary>
         /// <param name="codeCave">Code Cave Address for this process.</param>
         /// <returns>True if initialized OK from Cache, otherwise False.</returns>
-        [Obfuscation(Feature = "Virtualization", Exclude = false)]
         private static bool TryInitFromCache()
         {
             if (Memory.PID == Cache.PID && Cache.CodeCave != 0x0)
             {
-                _unityPlayerDll = Cache.UnityPlayerDll;
-                _monoDll = Cache.MonoDll;
-                _hookedMonoFuncAddress = Cache.HookedMonoFuncAddress;
-                _hookedMonoFunc = Cache.HookedMonoFunc;
-                _codeCave = Cache.CodeCave;
+                UnityPlayerDll = Cache.UnityPlayerDll;
+                MonoDll = Cache.MonoDll;
+                HookedMonoFuncAddress = Cache.HookedMonoFuncAddress;
+                HookedMonoFunc = Cache.HookedMonoFunc;
+                CodeCave = Cache.CodeCave;
                 LoneLogging.WriteLine("[NativeHook]: Initialize() -> Initialized from cache!");
                 return true;
             }
@@ -239,15 +230,14 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
         /// <summary>
         /// Set the Cache Data.
         /// </summary>
-        [Obfuscation(Feature = "Virtualization", Exclude = false)]
         private static void SetCache()
         {
             Cache.PID = Memory.PID;
-            Cache.UnityPlayerDll = _unityPlayerDll;
-            Cache.MonoDll = _monoDll;
-            Cache.HookedMonoFuncAddress = _hookedMonoFuncAddress;
-            Cache.HookedMonoFunc = _hookedMonoFunc;
-            Cache.CodeCave = _codeCave;
+            Cache.UnityPlayerDll = UnityPlayerDll;
+            Cache.MonoDll = MonoDll;
+            Cache.HookedMonoFuncAddress = HookedMonoFuncAddress;
+            Cache.HookedMonoFunc = HookedMonoFunc;
+            Cache.CodeCave = CodeCave;
             _ = Cache.SaveAsync();
         }
 
@@ -265,6 +255,10 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
         {
             lock (SyncRoot)
             {
+                // In read-only branch, native hook calls that require memory writes are disabled.
+                LoneLogging.WriteLine("[NativeHook]: Call() -> Memory writing is disabled; cannot perform call.");
+                return null;
+                /*
                 if (!Initialized)
                 {
                     LoneLogging.WriteLine("[NativeHook]: Call() -> Not initialized!");
@@ -319,6 +313,7 @@ namespace eft_dma_shared.Common.Unity.LowLevel.Hooks
                 }
                 LoneLogging.WriteLine("[NativeHook]: Call() -> *DANGER* Method was never executed. Game may crash.");
                 return null;
+                */
             }
         }
 

@@ -38,18 +38,7 @@ This repository is organized into several branches, each serving a specific purp
 Choose the branch that best fits your playstyle and ethical considerations. Each branch README contains specific information about its features and modifications. For help getting started, read the wiki for building, running and using this repository. 
 
 ## What is changed?
-- Speed increased from 1.2x to 1.4x (PvE Suggested)
-- Wide Lean modified for 3 levels of Huge Lean Upwards (PvE Suggested)
-- Loot through walls 10x extend range (PvE Suggested)
-- Added Loot Info Widget (PvE Suggested)
-- FPS no longer shown in window title
-- ESP Window Options:
-  - Always on Top
-  - Chroma (black)
-  - Click-through
-- Added Loot Info Widget
-  - Shows a loot table sorted by highest price, can click on each item to draw a line to its destination.
-- Added optional markers for switches (doors, power, etc) Thanks Copper
+- Removed all memory write features
 
 ## Donations
 - Donations to Twamp:

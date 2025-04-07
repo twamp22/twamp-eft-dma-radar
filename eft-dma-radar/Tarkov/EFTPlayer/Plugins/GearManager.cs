@@ -65,39 +65,37 @@ namespace eft_dma_radar.Tarkov.EFTPlayer.Plugins
             var loot = new List<LootItem>();
             var gearDict = new Dictionary<string, GearItem>(StringComparer.OrdinalIgnoreCase);
             foreach (var slot in Slots)
-            {
                 try
                 {
                     if (_isPMC && slot.Key == "Scabbard")
-                        continue; // Skip PMC scabbard
-        
+                        continue; // skip pmc scabbard
                     var containedItem = Memory.ReadPtr(slot.Value + Offsets.Slot.ContainedItem);
-                    var inventoryTemplate = Memory.ReadPtr(containedItem + Offsets.LootItem.Template);
-                    var idPtr = Memory.ReadValue<Types.MongoID>(inventoryTemplate + Offsets.ItemTemplate._id);
+                    var inventorytemplate = Memory.ReadPtr(containedItem + Offsets.LootItem.Template);
+                    var idPtr = Memory.ReadValue<Types.MongoID>(inventorytemplate + Offsets.ItemTemplate._id);
                     var id = Memory.ReadUnityString(idPtr.StringID);
-        
-                    if (EftDataManager.AllItems.TryGetValue(id, out var entry))
-                        loot.Add(new LootItem(entry));
-        
-                    // Get all contained items in player gear
-                    try
+                    if (EftDataManager.AllItems.TryGetValue(id, out var entry1))
+                        loot.Add(new LootItem(entry1));
+                    try // Get all items on player
                     {
                         var grids = Memory.ReadValue<ulong>(containedItem + Offsets.LootItemMod.Grids);
                         LootManager.GetItemsInGrid(grids, loot);
                     }
-                    catch { }
-        
+                    catch
+                    {
+                    }
+
                     if (EftDataManager.AllItems.TryGetValue(id, out var entry2))
                     {
-                        if (slot.Key == "FirstPrimaryWeapon" || slot.Key == "SecondPrimaryWeapon" || slot.Key == "Headwear") 
-                        {
+                        if (slot.Key == "FirstPrimaryWeapon" || slot.Key == "SecondPrimaryWeapon" ||
+                            slot.Key == "Headwear") // Only interested in weapons / helmets
                             try
                             {
                                 RecursePlayerGearSlots(containedItem, loot);
                             }
-                            catch { }
-                        }
-        
+                            catch
+                            {
+                            }
+
                         var gear = new GearItem
                         {
                             Long = entry2.Name ?? "None",
@@ -106,14 +104,14 @@ namespace eft_dma_radar.Tarkov.EFTPlayer.Plugins
                         gearDict.TryAdd(slot.Key, gear);
                     }
                 }
-                catch { } // Skip empty slots
-            }
-        
-            Loot = loot.OrderLoot().ToList();
-            Value = loot.Sum(x => x.Price);  // ✅ Ensure Value is updated correctly
-            Equipment = gearDict;
-        }
+                catch
+                {
+                } // Skip over empty slots
 
+            Loot = loot.OrderLoot().ToList();
+            Value = loot.Sum(x => x.Price); // Get value of player's loot/gear
+            Equipment = gearDict; // update readonly ref
+        }
 
         /// <summary>
         /// Checks a 'Primary' weapon for Ammo Type, and Thermal Scope.

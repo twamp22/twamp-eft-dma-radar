@@ -1,8 +1,6 @@
 ﻿using eft_dma_radar.Tarkov.EFTPlayer.Plugins;
-using eft_dma_radar.Tarkov.Features.MemoryWrites;
 using eft_dma_radar.UI.ColorPicker.ESP;
 using eft_dma_radar.UI.ColorPicker.Radar;
-using eft_dma_radar.UI.ESP;
 using eft_dma_radar.UI.LootFilters;
 using eft_dma_shared.Common.DMA;
 using eft_dma_shared.Common.ESP;
@@ -20,16 +18,9 @@ namespace eft_dma_radar.UI.Misc
     public sealed class Config : IConfig
     {
         #region ISharedConfig
-        public static Config Instance { get; set; }
 
         [JsonIgnore]
-        public bool MemWritesEnabled => this.MemWrites.MemWritesEnabled;
-        [JsonIgnore]
         public LowLevelCache LowLevelCache => this.Cache.LowLevel;
-        [JsonIgnore]
-        public ChamsConfig ChamsConfig => this.MemWrites.Chams;
-        [JsonIgnore]
-        public bool AdvancedMemWrites => this.MemWrites.AdvancedMemWrites;
 
         #endregion
 
@@ -99,12 +90,6 @@ namespace eft_dma_radar.UI.Misc
         /// </summary>
         [JsonPropertyName("showInfoTab")]
         public bool ShowInfoTab { get; set; } = true;
-
-        /// <summary>
-        /// Shows Loot Info Widget.
-        /// </summary>
-        [JsonPropertyName("showLootTab")]
-        public bool ShowLootTab { get; set; } = true;
 
         /// <summary>
         /// Shows bodies/corpses on map.
@@ -224,13 +209,6 @@ namespace eft_dma_radar.UI.Misc
         public Dictionary<RadarColorOption, string> Colors { get; set; } = RadarColorOptions.GetDefaultColors();
 
         /// <summary>
-        /// DMA Toolkit (Write Features) Config.
-        /// </summary>
-        [JsonInclude]
-        [JsonPropertyName("dmaToolkit")]
-        public MemWritesConfig MemWrites { get; private set; } = new();
-
-        /// <summary>
         /// ESP Configuration.
         /// </summary>
         [JsonInclude]
@@ -344,8 +322,6 @@ namespace eft_dma_radar.UI.Misc
                         config = new Config();
                         SaveInternal(config);
                     }
-
-                    ValidateConfigIntegrity(config);
                     return config;
                 }
                 catch (Exception ex)
@@ -385,16 +361,6 @@ namespace eft_dma_radar.UI.Misc
             File.WriteAllText(_tempFile.FullName, json);
             _tempFile.CopyTo(_configFile.FullName, true);
             _tempFile.Delete();
-        }
-
-        /// <summary>
-        /// Ensure the config file is within proper bounds, and repair if needed.
-        /// Address any config bugs here.
-        /// </summary>
-        /// <param name="config">Config instance to repair.</param>
-        private static void ValidateConfigIntegrity(Config config)
-        {
-
         }
 
         #endregion
@@ -473,18 +439,6 @@ namespace eft_dma_radar.UI.Misc
         public bool ShowFPS { get; set; } = false;
 
         /// <summary>
-        /// Show Clickthrough
-        /// </summary>
-        [JsonPropertyName("espClickThrough")]
-        public bool ClickThrough { get; set; } = false;
-
-        /// <summary>
-        /// Show Always On Top.
-        /// </summary>
-        [JsonPropertyName("espAlwaysOnTop")]
-        public bool AlwaysOnTop { get; set; } = false;
-
-        /// <summary>
         /// Display exfils in ESP.
         /// </summary>
         [JsonPropertyName("showExfils")]
@@ -513,12 +467,6 @@ namespace eft_dma_radar.UI.Misc
         /// </summary>
         [JsonPropertyName("showFireportAim")]
         public bool ShowFireportAim { get; set; } = true;
-
-        /// <summary>
-        /// Display Aim Lock of target locked onto via aimbot in ESP.
-        /// </summary>
-        [JsonPropertyName("showAimLock")]
-        public bool ShowAimLock { get; set; } = true;
 
         /// <summary>
         /// Display Mines/Claymores in ESP.
@@ -646,12 +594,6 @@ namespace eft_dma_radar.UI.Misc
         /// </summary>
         [JsonPropertyName("espColors3")]
         public Dictionary<EspColorOption, string> Colors { get; set; } = EspColorOptions.GetDefaultColors();
-
-        // <summary>
-        /// Indicates whether to show switches on the ESP.
-        /// </summary>
-        [JsonPropertyName("showSwitches")]
-        public bool ShowSwitches { get; set; } = true;
     }
 
     public sealed class ESPPlayerRenderOptions
@@ -679,334 +621,6 @@ namespace eft_dma_radar.UI.Misc
         /// </summary>
         [JsonPropertyName("showDist")]
         public bool ShowDist { get; set; }
-    }
-
-    public sealed class MemWritesConfig
-    {
-        /// <summary>
-        /// Enables DMA Memory Writing
-        /// </summary>
-        [JsonPropertyName("enableMemWritesRisky")]
-        public bool MemWritesEnabled { get; set; } = false;
-
-        /// <summary>
-        /// Enables Advanced Mem Writes Features (NativeHook).
-        /// </summary>
-        [JsonPropertyName("advancedMemWritesRisky")]
-        public bool AdvancedMemWrites { get; set; } = false;
-
-        /// <summary>
-        /// Enables the AntiPage Feature.
-        /// </summary>
-        [JsonPropertyName("antiPage")]
-        public bool AntiPage { get; set; } = false;
-
-        /// <summary>
-        /// Hides Raid Code from the game.
-        /// </summary>
-        [JsonPropertyName("hideRaidCode")]
-        public bool HideRaidCode { get; set; } = false;
-        /// <summary>
-        /// Enables Streamer Mode.
-        /// </summary>
-        [JsonPropertyName("streamerMode")]
-        public bool StreamerMode { get; set; } = false;
-        /// <summary>
-        /// Enable No Recoil Feature on Startup.
-        /// </summary>
-        [JsonPropertyName("enableNoRecoil")]
-        public bool NoRecoil { get; set; } = false;
-
-        /// <summary>
-        /// Amount of 'No Recoil'. 0 = None, 1 = Full
-        /// </summary>
-        [JsonPropertyName("noRecoilAmount")]
-        public int NoRecoilAmount { get; set; } = 0;
-
-        /// <summary>
-        /// Amount of 'No Sway'. 0 = None, 1 = Full
-        /// </summary>
-        [JsonPropertyName("noSwayAmount")]
-        public int NoSwayAmount { get; set; } = 0;
-
-        /// <summary>
-        /// Enable No Visor Feature on Startup.
-        /// </summary>
-        [JsonPropertyName("enableNoVisor")]
-        public bool NoVisor { get; set; } = false;
-
-        /// <summary>
-        /// Enable Inf Stamina Feature on Startup.
-        /// </summary>
-        [JsonPropertyName("enableInfStamina2")]
-        public bool InfStamina { get; set; } = false;
-
-        /// <summary>
-        /// Chams Feature Config
-        /// </summary>
-        [JsonPropertyName("chams")]
-        public ChamsConfig Chams { get; set; } = new();
-
-        /// <summary>
-        /// Enable Always Day Feature on Startup.
-        /// </summary>
-        [JsonPropertyName("enableAlwaysDay")]
-        public bool AlwaysDaySunny { get; set; } = false;
-
-        /// <summary>
-        /// Enable No Weapon Malfs Feature on Startup.
-        /// </summary>
-        [JsonPropertyName("enableNoWepMalf")]
-        public bool NoWeaponMalfunctions { get; set; } = false;
-
-        /// <summary>
-        /// Enable Loot Through Walls (LTW) on Startup.
-        /// </summary>
-        [JsonPropertyName("ltw")]
-        public LTWConfig LootThroughWalls { get; set; } = new();
-
-        /// <summary>
-        /// Aimbot Configuration.
-        /// </summary>
-        [JsonPropertyName("aimbot")]
-        public AimbotConfig Aimbot { get; set; } = new();
-
-        /// <summary>
-        /// Wide Lean Configuration.
-        /// </summary>
-        [JsonPropertyName("wideLean")]
-        public WideLeanConfig WideLean { get; set; } = new();
-
-        /// <summary>
-        /// 1.4x Move Speed is Enabled.
-        /// </summary>
-        [JsonPropertyName("moveSpeed2")]
-        public bool MoveSpeed { get; set; } = false;
-
-        /// <summary>
-        /// Full Bright is Enabled.
-        /// </summary>
-        [JsonPropertyName("fullBright")]
-        public bool FullBright { get; set; } = false;
-
-        /// <summary>
-        /// Super Speed is Enabled.
-        /// This has a high ban risk.
-        /// </summary>
-        [JsonPropertyName("superSpeedRisky")]
-        public SuperSpeedConfig SuperSpeed { get; set; } = new();
-
-        /// <summary>
-        /// Makes weapon operations faster (ads, mag loading, etc.)
-        /// </summary>
-        [JsonPropertyName("fastWeaponOps")]
-        public bool FastWeaponOps { get; set; } = false;
-
-        /// <summary>
-        /// Makes loading/unloading magazines faster.
-        /// </summary>
-        [JsonPropertyName("fastLoadUnload")]
-        public bool FastLoadUnload { get; set; } = false;
-    }
-
-    public sealed class SuperSpeedConfig
-    {
-        /// <summary>
-        /// Super Speed is Enabled.
-        /// </summary>
-        [JsonPropertyName("enabled")]
-        public bool Enabled { get; set; } = false;
-
-        /// <summary>
-        /// Speed multiplier.
-        /// </summary>
-        [JsonPropertyName("speed")]
-        public int Speed { get; set; } = 80;
-
-        /// <summary>
-        /// Time (ms) that speed is active.
-        /// </summary>
-        [JsonPropertyName("onTime")]
-        public int OnTime { get; set; } = 90;
-
-        /// <summary>
-        /// Time (ms) that speed is inactive.
-        /// </summary>
-        [JsonPropertyName("offTime")]
-        public int OffTime { get; set; } = 220;
-    }
-
-    /// <summary>
-    /// Loot Through Walls Config.
-    /// </summary>
-    public sealed class LTWConfig
-    {
-        /// <summary>
-        /// True if LTW is enabled.
-        /// </summary>
-        [JsonPropertyName("enabled")]
-        public bool Enabled { get; set; } = false;
-
-        /// <summary>
-        /// LTW Zoom Amount.
-        /// </summary>
-        [JsonPropertyName("zoomAmount")]
-        public int ZoomAmount { get; set; } = 200;
-    }
-
-    public sealed class WideLeanConfig
-    {
-        /// <summary>
-        /// Enable Wide Lean Feature on Startup.
-        /// </summary>
-        [JsonPropertyName("enabled")]
-        public bool Enabled { get; set; } = false;
-
-        /// <summary>
-        /// Wide lean mode (hold or toggle,etc.)
-        /// </summary>
-        [JsonPropertyName("mode")]
-        public HotkeyMode Mode { get; set; } = HotkeyMode.Hold;
-
-        /// <summary>
-        /// Amount of wide lean (scaled to 0.01 - 1.00).
-        /// </summary>
-        [JsonPropertyName("amount")]
-        public int Amount { get; set; } = 50;
-    }
-
-    public sealed class AimbotConfig
-    {
-        /// <summary>
-        /// Enable Aimbot Feature on Startup.
-        /// </summary>
-        [JsonPropertyName("enabled")]
-        public bool Enabled { get; set; } = false;
-
-        /// <summary>
-        /// Last Aimbot Targeting Mode that the player set.
-        /// </summary>
-        [JsonPropertyName("targetingMode")]
-        public Aimbot.AimbotTargetingMode TargetingMode { get; set; } = Aimbot.AimbotTargetingMode.FOV;
-
-        /// <summary>
-        /// Aimbot FOV via ESP Circle.
-        /// </summary>
-        [JsonPropertyName("fov2")]
-        public float FOV { get; set; } = 150f;
-
-        /// <summary>
-        /// Bone for the Default Aimbot Target.
-        /// </summary>
-        [JsonPropertyName("bone")]
-        public Bones Bone { get; set; } = Bones.HumanSpine3;
-
-        /// <summary>
-        /// Always headshot AI Targets.
-        /// </summary>
-        [JsonPropertyName("headshotAI")]
-        public bool HeadshotAI { get; set; } = true;
-
-        /// <summary>
-        /// True if Aimbot Re-Locking is disabled after a target dies/is no longer valid.
-        /// </summary>
-        [JsonPropertyName("disableReLock")]
-        public bool DisableReLock { get; set; } = false;
-
-        /// <summary>
-        /// Silent Aim Config
-        /// </summary>
-        [JsonPropertyName("silentAimCfg")]
-        public SilentAimConfig SilentAim { get; set; } = new();
-        /// <summary>
-        /// Random Bone Config
-        /// </summary>
-        [JsonPropertyName("randomBone")]
-        public AimbotRandomBoneConfig RandomBone { get; set; } = new();
-    }
-
-    public sealed class AimbotRandomBoneConfig
-    {
-        [JsonIgnore]
-        private static readonly Random _rng = new();
-
-        /// <summary>
-        /// Enables Random Bone Selection.
-        /// </summary>
-        [JsonPropertyName("enabled")]
-        public bool Enabled { get; set; } = false;
-        /// <summary>
-        /// Head shot percentage.
-        /// </summary>
-        [JsonPropertyName("headPercent")]
-        public int HeadPercent { get; set; } = 1;
-        /// <summary>
-        /// Torso shot percentage.
-        /// </summary>
-        [JsonPropertyName("torsoPercent")]
-        public int TorsoPercent { get; set; } = 33;
-        /// <summary>
-        /// Arms shot percentage.
-        /// </summary>
-        [JsonPropertyName("armsPercent")]
-        public int ArmsPercent { get; set; } = 33;
-        /// <summary>
-        /// Legs shot percentage.
-        /// </summary>
-        [JsonPropertyName("legsPercent")]
-        public int LegsPercent { get; set; } = 33;
-
-        /// <summary>
-        /// True if all values add up to 100% exactly, otherwise False.
-        /// </summary>
-        [JsonIgnore]
-        public bool Is100Percent => (HeadPercent >= 0 && TorsoPercent >= 0 && ArmsPercent >= 0 && LegsPercent >= 0) &&
-            (HeadPercent + TorsoPercent + ArmsPercent + LegsPercent == 100);
-
-        /// <summary>
-        /// Reset all values to defaults.
-        /// </summary>
-        public void ResetDefaults()
-        {
-            HeadPercent = 1;
-            TorsoPercent = 33;
-            ArmsPercent = 33;
-            LegsPercent = 33;
-        }
-
-        /// <summary>
-        /// Returns a random bone via the selected percentages.
-        /// </summary>
-        /// <returns>Skeleton Bone.</returns>
-        public Bones GetRandomBone()
-        {
-            if (!Is100Percent)
-                ResetDefaults();
-            int roll = _rng.Next(0, 100) + 1;
-            if (roll <= HeadPercent)
-                return Bones.HumanHead;
-            else if (roll <= HeadPercent + TorsoPercent)
-                return Random.Shared.GetItems(Skeleton.AllTorsoBones.Span, 1)[0];
-            else if (roll <= HeadPercent + TorsoPercent + ArmsPercent)
-                return Random.Shared.GetItems(Skeleton.AllArmsBones.Span, 1)[0];
-            else // Legs
-                return Random.Shared.GetItems(Skeleton.AllLegsBones.Span, 1)[0];
-        }
-    }
-
-    public sealed class SilentAimConfig
-    {
-        /// <summary>
-        /// Automatically select best target bone.
-        /// </summary>
-        [JsonPropertyName("autoBone")]
-        public bool AutoBone { get; set; } = false;
-
-        /// <summary>
-        /// Automatically 'unlock' if target bone leaves FOV.
-        /// </summary>
-        [JsonPropertyName("safeLock")]
-        public bool SafeLock { get; set; } = false;
     }
 
     public sealed class WidgetsConfig
@@ -1051,24 +665,6 @@ namespace eft_dma_radar.UI.Misc
         }
 
         #endregion
-
-        #region Loot Info
-
-        [JsonPropertyName("lootInfoMinimized")]
-        public bool LootInfoMinimized { get; set; } = false;
-
-        [JsonInclude]
-        [JsonPropertyName("lootInfoLocation")]
-        public RectFSer _lootInfoLoc { private get; set; }
-        [JsonIgnore]
-        public SKRect LootInfoLocation
-        {
-            get => new(_lootInfoLoc.Left, _lootInfoLoc.Top, _lootInfoLoc.Right, _lootInfoLoc.Bottom);
-            set => _lootInfoLoc = new RectFSer(value.Left, value.Top, value.Right, value.Bottom);
-        }
-        
-        #endregion
-        
     }
 
     /// <summary>

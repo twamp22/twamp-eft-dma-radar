@@ -1,7 +1,4 @@
-﻿using eft_dma_radar.Tarkov.Features.MemoryWrites.Patches;
-using eft_dma_shared.Common.Features;
-using eft_dma_shared.Common.Misc.Data;
-using eft_dma_shared.Common.Players;
+﻿using eft_dma_shared.Common.Players;
 using eft_dma_shared.Common.Unity;
 
 namespace eft_dma_radar.Tarkov.EFTPlayer
@@ -102,20 +99,8 @@ namespace eft_dma_radar.Tarkov.EFTPlayer
             {
                 if (isAI)
                 {
-                    IsHuman = false;
-                    if (MemPatchFeature<FixWildSpawnType>.Instance.IsApplied)
-                    {
-                        var settings = Memory.ReadPtr(Info + Offsets.PlayerInfo.Settings);
-                        var wildSpawnType = (Enums.WildSpawnType)Memory.ReadValueEnsure<int>(settings + Offsets.PlayerInfoSettings.Role);
-                        var role = Player.GetAIRoleInfo(wildSpawnType);
-                        Name = role.Name;
-                        Type = role.Type;
-                    }
-                    else
-                    {
-                        Name = "AI";
-                        Type = PlayerType.AIScav;
-                    }
+                    Name = "AI";
+                    Type = PlayerType.AIScav;
                 }
                 else
                 {

@@ -3,14 +3,11 @@ using eft_dma_radar.Tarkov.GameWorld.Exits;
 using eft_dma_radar.Tarkov.GameWorld.Explosives;
 using eft_dma_radar.Tarkov.Loot;
 using eft_dma_radar.UI.Radar;
-using eft_dma_shared.Common.Features;
 using eft_dma_shared.Common.Misc;
 using eft_dma_shared.Common.DMA;
 using eft_dma_shared.Common.DMA.ScatterAPI;
 using eft_dma_shared.Common.Unity;
-using eft_dma_radar.Tarkov.Features.MemoryWrites;
 using eft_dma_shared.Common.Misc.Data;
-using eft_dma_shared.Common.Misc.Commercial;
 
 namespace eft_dma_radar.Tarkov.GameWorld
 {
@@ -333,7 +330,7 @@ namespace eft_dma_radar.Tarkov.GameWorld
                 LoneLogging.WriteLine("Realtime thread starting...");
                 while (InRaid)
                 {
-                    if (Program.Config.RatelimitRealtimeReads || !CameraManagerBase.EspRunning || (MemWriteFeature<Aimbot>.Instance.Enabled && Aimbot.Engaged))
+                    if (Program.Config.RatelimitRealtimeReads || !CameraManagerBase.EspRunning)
                         _refreshWait.AutoWait(TimeSpan.FromMilliseconds(1), 1000);
                     ct.ThrowIfCancellationRequested();
                     RealtimeLoop(); // Realtime update loop (player positions, etc.)
