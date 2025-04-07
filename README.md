@@ -10,32 +10,32 @@ This repository is organized into several branches, each serving a specific purp
     <th>Description</th>
   </tr>
   <tr>
-    <td><a href="../../tree/master"><strong>master</strong></a></td>
-    <td><strong>[EFT]</strong> Unmodified version from upstream, kept in sync with the original repository</td>
+    <td><a href="../../tree/master">master</a></td>
+    <td><i>Unmodified version from upstream, kept in sync with the original repository. This includes EFT and Arena game modes.</i></td>
   </tr>
   <tr>
     <td><a href="../../tree/pvp-community">pvp-community</a></td>
-    <td><strong>[EFT]</strong> Enhanced with community features focused on PvP gameplay</td>
+    <td><strong>[EFT ONLY]</strong> Enhanced with community features focused on PvP gameplay</td>
   </tr>
   <tr>
     <td><a href="../../tree/pve-community">pve-community</a></td>
-    <td><strong>[EFT]</strong> Enhanced with community features focused on PvE gameplay</td>
+    <td><strong>[EFT ONLY]</strong> Enhanced with community features focused on PvE gameplay</td>
   </tr>
   <tr>
     <td><a href="../../tree/eft-read-only">eft-read-only</a></td>
-    <td><strong>[EFT]</strong> Radar features only (no memory writes)</td>
+    <td><strong>[EFT ONLY]</strong> Radar features only (no memory writes)</td>
   </tr>
   <tr>
     <td><a href="../../tree/arena">arena</a></td>
-    <td><strong>[ARENA]</strong> Specialized branch for Arena gameplay with full features</td>
+    <td><strong>[ARENA ONLY]</strong> Enhanced with community features specialized for arena gameplay</td>
   </tr>
   <tr>
     <td><a href="../../tree/arena-read-only">arena-read-only</a></td>
-    <td><strong>[ARENA]</strong> Radar features only (no memory writes)</td>
+    <td><strong>[ARENA ONLY]</strong> Radar features only (no memory writes)</td>
   </tr>
 </table>
 
-Choose the branch that best fits your playstyle and ethical considerations. Each branch README contains specific information about its features and modifications.
+Choose the branch that best fits your playstyle and ethical considerations. Each branch README contains specific information about its features and modifications. For help getting started, read the wiki for building, running and using this repository. 
 
 ## Donations
 - Donations to Twamp:
@@ -51,8 +51,5 @@ Choose the branch that best fits your playstyle and ethical considerations. Each
   - Solana: `GYwdj8NpGG975oNY7s9mTjY92QhLYW7DpJoTjnGwDiQu`
 
 ## Contact
-- For any inquiries or assistance, feel free to join the [EFT Educational Resources Discord Server](https://discord.gg/jGSnTCekdx). Please confine discussion to the [Lone DMA Section](https://discord.com/channels/1218731239599767632/1342207117704036382).
-- Report any major outages (after a game update,etc.) by opening an [Issue](https://github.com/Lone83427/lone-eft-dma-radar/issues). Please be *as detailed as possible*, don't just say "it's broke".
-  - This is **NOT** for feature requests or suggestions.
-  - Misuse of the Issues category will result in the privilege being revoked for that user.
-  - If misuse is rampant, the ability to open Issues may be disabled for all users.
+- For any inquiries or assistance, feel free to join the [EFT Educational Resources Discord Server](https://discord.gg/eG2muvypJN). Please confine discussion to the [Lone DMA Discussion Section](https://discord.com/channels/1218731239599767632/1342208470300229754).
+- Report any major outages (after a game update,etc.) by opening an Issue.
