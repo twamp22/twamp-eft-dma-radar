@@ -6,12 +6,12 @@ This repository is organized into several branches, each serving a specific purp
 
 | Branch | Description |
 |--------|-------------|
-| [`master`](../../tree/master) | Unmodified version from upstream, kept in sync with the original repository |
-| [`eft-read-only`](../../tree/eft-read-only) | Main game version with radar features only (no memory writes) |
-| [`pvp-community`](../../tree/pvp-community) | Enhanced with community features focused on PvP gameplay |
-| [`pve-community`](../../tree/pve-community) | Enhanced with community features focused on PvE gameplay |
-| [`arena`](../../tree/arena) | Specialized branch for Arena gameplay with full features |
-| [`arena-read-only`](../../tree/arena-read-only) | Arena version with radar features only (no memory writes) |
+| [`master`](../../tree/master) | [EFT] Unmodified version from upstream, kept in sync with the original repository |
+| [`pvp-community`](../../tree/pvp-community) | [EFT] Enhanced with community features focused on PvP gameplay |
+| [`pve-community`](../../tree/pve-community) | [EFT] Enhanced with community features focused on PvE gameplay |
+| [`eft-read-only`](../../tree/eft-read-only) | [EFT] Radar features only (no memory writes) |
+| [`arena`](../../tree/arena) | [ARENA] Specialized branch for Arena gameplay with full features |
+| [`arena-read-only`](../../tree/arena-read-only) | [ARENA] Radar features only (no memory writes) |
 
 Choose the branch that best fits your playstyle and ethical considerations. Each branch README contains specific information about its features and modifications.
 
