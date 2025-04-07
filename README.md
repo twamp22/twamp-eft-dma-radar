@@ -26,7 +26,7 @@ This repository is organized into several branches, each serving a specific purp
     <td><strong>[EFT ONLY]</strong> <i>Radar features only (no memory writes)</i></td>
   </tr>
   <tr>
-    <td><a href="../../tree/arena">arena</a></td>
+    <td><a href="../../tree/arena-community">arena-community</a></td>
     <td><strong>[ARENA ONLY]</strong> <i>Enhanced with community features specialized for arena gameplay</i></td>
   </tr>
   <tr>
@@ -56,10 +56,6 @@ Choose the branch that best fits your playstyle and ethical considerations. Each
   - NANO: `nano_19cqe9fy5cza1ksajy1ro611mfb1ip6ct1kigbzzqq3cx7skginxyqkhi16e`
   - Etherium: `0xE7ca5F99063a37D2BC0DD0225e07E41ABB4beb67`
   - Bitcoin: `bc1p9z4xhc8wqlen5vwhmjx7w72adaexd33fmwq8yt6888f2tt7wa3jqufm6p8`
-  
-- Donations to Mambo
-  - Bbitcoin: `bc1qlw807xlyglfq6h33kg753npv7cstlms8yz7w2wrazp932u3zsdxqhpf583`
-  - Paypal: `fakedeath94@hotmail.com`
   
 - Donations to Lone:
   - Bitcoin: `bc1q7l4w7n3mt0rawztj0xl4me7mrnhjdr0hgjh2xp`
