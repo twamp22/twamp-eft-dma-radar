@@ -1,8 +1,8 @@
-﻿using eft_dma_radar.Tarkov.EFTPlayer;
+﻿using eft_dma_shared.Common.Misc;
+using eft_dma_radar.Tarkov.EFTPlayer;
 using eft_dma_radar.Tarkov.Features;
 using eft_dma_shared.Common.DMA.ScatterAPI;
 using eft_dma_shared.Common.Features;
-using eft_dma_shared.Common.Misc.Commercial;
 using eft_dma_shared.Common.Unity;
 using eft_dma_shared.Common.Unity.Collections;
 
@@ -24,7 +24,7 @@ namespace eft_dma_radar.Tarkov.Features.MemoryWrites
         public override void TryApply(ScatterWriteHandle writes)
         {
             const float baseSpeed = 1.0f;
-            const float increasedSpeed = 1.4f; // Any higher risks a ban
+            const float increasedSpeed = 1.2f; // Any higher risks a ban
             try
             {
                 if (Memory.LocalPlayer is LocalPlayer localPlayer)

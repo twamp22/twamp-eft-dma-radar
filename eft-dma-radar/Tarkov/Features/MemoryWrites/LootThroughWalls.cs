@@ -1,8 +1,8 @@
-﻿using eft_dma_radar.Tarkov.EFTPlayer;
+﻿using eft_dma_shared.Common.Misc;
+using eft_dma_radar.Tarkov.EFTPlayer;
 using eft_dma_radar.UI.Misc;
 using eft_dma_shared.Common.DMA.ScatterAPI;
 using eft_dma_shared.Common.Features;
-using eft_dma_shared.Common.Misc.Commercial;
 using eft_dma_shared.Common.Unity;
 
 namespace eft_dma_radar.Tarkov.Features.MemoryWrites
@@ -68,7 +68,7 @@ namespace eft_dma_radar.Tarkov.Features.MemoryWrites
                         var hc = localPlayer.Firearm?.HandsController;
                         if (hc?.Item2 is bool firearm && firearm && hc.Item1 is ulong firearmController)
                         {
-                            float fovCompensatoryDist = Config.ZoomAmount * .1f;
+                            float fovCompensatoryDist = Config.ZoomAmount * .01f;
                             if (zoomEngaged && (!_engaged || fovCompensatoryDist != _fovCompensatoryDist || firearmController != _firearmController))
                             {
                                 writes.AddValueEntry(firearmController + Offsets.ClientFirearmController.WeaponLn, weaponLn);

@@ -1,7 +1,9 @@
 ﻿using eft_dma_shared.Misc;
 using System.Diagnostics;
 using eft_dma_shared.Common.Misc.Config;
-using eft_dma_shared.Common.Misc.Commercial;
+using eft_dma_shared.Common.Misc;
+using System.Net.Http.Headers;
+using System.Net;
 
 namespace eft_dma_shared
 {
@@ -17,6 +19,10 @@ namespace eft_dma_shared
 
         internal static DirectoryInfo ConfigPath { get; private set; }
         internal static IConfig Config { get; private set; }
+        /// <summary>
+        /// Singleton HTTP Client for this application.
+        /// </summary>
+        public static HttpClient HttpClient { get; private set; }
 
         /// <summary>
         /// Initialize the Shared State between this module and the main application.
@@ -35,9 +41,28 @@ namespace eft_dma_shared
                 throw new ApplicationException("The Application Is Already Running!");
             AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
             SetHighPerformanceMode();
+            SetupHttpClient();
 #if !DEBUG
             VerifyDependencies();
 #endif
+        }
+
+        /// <summary>
+        /// Setup the HttpClient for this App Domain.
+        /// </summary>
+        private static void SetupHttpClient()
+        {
+            var handler = new HttpClientHandler()
+            {
+                AllowAutoRedirect = true,
+                SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13,
+                AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip
+            };
+            var client = new HttpClient(handler);
+            client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue("identity"));
+            client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue("deflate"));
+            client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
+            SharedProgram.HttpClient = client;
         }
 
         /// <summary>
@@ -52,8 +77,6 @@ namespace eft_dma_shared
             var highPerformanceGuid = new Guid("8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c");
             if (Native.PowerSetActiveScheme(IntPtr.Zero, ref highPerformanceGuid) != 0)
                 LoneLogging.WriteLine("WARNING: Unable to set High Performance Power Plan");
-            /// Set Working Set limits for process
-            TrySetProcessWorkingSetSize();
         }
 
         /// <summary>
@@ -82,21 +105,6 @@ namespace eft_dma_shared
                                                     $"1. Make sure that you unzipped the Client Files, and that all files are present in the same folder as the Radar Client (EXE).\n" +
                                                     $"2. If using a shortcut, make sure the Current Working Directory (CWD) is set to the " +
                                                     $"same folder that the Radar Client (EXE) is located in.");
-        }
-
-
-        /// <summary>
-        /// Set the Working Set of the Process.
-        /// </summary>
-        private static void TrySetProcessWorkingSetSize()
-        {
-            const ulong chunk = 32ul * 1024 * 1024; // 32MB
-            ulong workingSet = 4ul * 1024 * 1024 * 1024; // 4GB
-            while (!Native.SetProcessWorkingSetSizeEx(-1, (workingSet / 2) & ~(0x1000ul - 1), workingSet, Native.QUOTA_LIMITS_HARDWS_MIN_ENABLE | Native.QUOTA_LIMITS_HARDWS_MAX_DISABLE) &&
-                workingSet > chunk)
-            {
-                workingSet -= chunk;
-            }
         }
 
         /// <summary>

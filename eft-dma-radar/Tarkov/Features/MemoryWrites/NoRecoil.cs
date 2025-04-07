@@ -1,8 +1,8 @@
-﻿using eft_dma_radar.Tarkov.EFTPlayer;
+﻿using eft_dma_shared.Common.Misc;
+using eft_dma_radar.Tarkov.EFTPlayer;
 using eft_dma_radar.Tarkov.Features;
 using eft_dma_shared.Common.DMA.ScatterAPI;
 using eft_dma_shared.Common.Features;
-using eft_dma_shared.Common.Misc.Commercial;
 
 namespace eft_dma_radar.Tarkov.Features.MemoryWrites
 {

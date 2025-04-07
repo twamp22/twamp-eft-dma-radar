@@ -1,6 +1,5 @@
 ﻿global using SKSvg = Svg.Skia.SKSvg;
 global using SkiaSharp;
-global using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 global using SkiaSharp.Views.Desktop;
 global using System.ComponentModel;
 global using System.Data;
@@ -36,10 +35,12 @@ using eft_dma_shared.Common.Maps;
 using eft_dma_radar.Tarkov.Features;
 using eft_dma_radar.Tarkov.Features.MemoryWrites.Patches;
 using eft_dma_shared.Common.Misc.Data;
+using eft_dma_shared.Common.UI;
 
 [assembly: AssemblyTitle(Program.Name)]
 [assembly: AssemblyProduct(Program.Name)]
-[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.0.*")]
+[assembly: AssemblyCopyright("BSD Zero Clause License ©2025 lone-dma")]
 [assembly: SupportedOSPlatform("Windows")]
 
 namespace eft_dma_radar
@@ -63,7 +64,6 @@ namespace eft_dma_radar
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
-        [Obfuscation(Feature = "Virtualization", Exclude = false)]
         [STAThread]
         static void Main(string[] args)
         {
@@ -85,25 +85,7 @@ namespace eft_dma_radar
         {
             try
             {
-                try
-                {
-                    string loneCfgPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Lones-Client");
-                    if (Directory.Exists(loneCfgPath))
-                    {
-                        if (ConfigPath.Exists)
-                            ConfigPath.Delete(true);
-                        Directory.Move(loneCfgPath, ConfigPath.FullName);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("ERROR Importing Lone Config(s). Close down the radar, and try copy your config files manually from %AppData%\\LonesClient TO %AppData%\\eft-dma-radar\n\n" +
-                        "Be sure to delete the Lones-Client folder when done.\n\n" +
-                        $"ERROR: {ex}",
-                        Program.Name,
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Warning);
-                }
+                TryImportLoneCfg();
                 ConfigPath.Create();
                 var config = Config.Load();
                 eft_dma_shared.SharedProgram.Initialize(ConfigPath, config);
@@ -117,18 +99,48 @@ namespace eft_dma_radar
         }
 
         /// <summary>
+        /// If user is a former managed Lone EFT User, try import their config.
+        /// </summary>
+        private static void TryImportLoneCfg()
+        {
+            try
+            {
+                DirectoryInfo loneCfgPath = new(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Lones-Client"));
+                if (!ConfigPath.Exists && loneCfgPath.Exists)
+                {
+                    ConfigPath.Create();
+                    foreach (var file in loneCfgPath.EnumerateFiles())
+                        file.CopyTo(Path.Combine(ConfigPath.FullName, file.Name));
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("ERROR Importing Lone Config(s)." +
+                    $"Exception Info: {ex}",
+                    Program.Name,
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+            }
+        }
+
+        /// <summary>
         /// Configure Program Startup.
         /// </summary>
-        [Obfuscation(Feature = "Virtualization", Exclude = false)]
         private static void ConfigureProgram()
         {
             ApplicationConfiguration.Initialize();
-            EftDataManager.ModuleInitAsync().GetAwaiter().GetResult();
+            using var loading = LoadingForm.Create();
+            loading.UpdateStatus("Loading Tarkov.Dev Data...", 15);
+            EftDataManager.ModuleInitAsync(loading).GetAwaiter().GetResult();
+            loading.UpdateStatus("Loading Map Assets...", 35);
             LoneMapManager.ModuleInit();
+            loading.UpdateStatus("Starting DMA Connection...", 50);
             MemoryInterface.ModuleInit();
+            loading.UpdateStatus("Loading Remaining Modules...", 75);
             FeatureManager.ModuleInit();
             ResourceJanitor.ModuleInit(new Action(CleanupWindowResources));
             RuntimeHelpers.RunClassConstructor(typeof(MemPatchFeature<FixWildSpawnType>).TypeHandle);
+            loading.UpdateStatus("Loading Completed!", 100);
         }
 
         private static void CleanupWindowResources()

@@ -1,8 +1,8 @@
-﻿using eft_dma_radar.Tarkov.EFTPlayer.Plugins;
+﻿using eft_dma_shared.Common.Misc;
+using eft_dma_radar.Tarkov.EFTPlayer.Plugins;
 using eft_dma_radar.UI.Radar;
 using eft_dma_shared.Common.DMA;
 using eft_dma_shared.Common.DMA.ScatterAPI;
-using eft_dma_shared.Common.Misc.Commercial;
 using eft_dma_shared.Common.Players;
 using eft_dma_shared.Common.Unity;
 using eft_dma_shared.Common.Unity.Collections;

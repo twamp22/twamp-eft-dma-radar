@@ -1,12 +1,11 @@
-﻿using eft_dma_radar.Tarkov.Features;
+﻿using eft_dma_shared.Common.Misc;
+using eft_dma_radar.Tarkov.Features;
 using eft_dma_radar.Tarkov.GameWorld;
 using eft_dma_shared.Common.DMA.ScatterAPI;
 using eft_dma_shared.Common.Features;
-using eft_dma_shared.Common.Misc.Commercial;
 using eft_dma_shared.Common.Misc.Config;
 using eft_dma_shared.Common.Unity;
 using eft_dma_shared.Common.Unity.LowLevel;
-using eft_dma_radar.Tarkov.EFTPlayer;
 
 namespace eft_dma_radar.Tarkov.Features.MemoryWrites
 {
@@ -33,18 +32,14 @@ namespace eft_dma_radar.Tarkov.Features.MemoryWrites
                 {
                     var cm = game.CameraManager;
                     var mode = Config.Mode; // Cache value
-
-                    // Disable culling for VisCheck modes
-                    if (mode is ChamsManager.ChamsMode.VisCheckFlat || mode is ChamsManager.ChamsMode.VisCheckGlow || 
-                        mode is ChamsManager.ChamsMode.VisCheckWireframe)
+                                            // Vischeck Config
+                    if (mode is ChamsManager.ChamsMode.VisCheck) // Only disable culling for Vischeck Chams
                     {
                         ulong fpsView = cm.FPSCamera;
                         ulong opticView = cm.OpticCamera;
                         const bool targetCulling = false;
-
                         var cullingFps = Memory.ReadValue<bool>(fpsView + UnityOffsets.Camera.OcclusionCulling);
                         var cullingOptical = Memory.ReadValue<bool>(opticView + UnityOffsets.Camera.OcclusionCulling);
-
                         if (cullingFps != targetCulling)
                         {
                             writes.AddValueEntry(fpsView + UnityOffsets.Camera.OcclusionCulling, targetCulling);
@@ -56,24 +51,51 @@ namespace eft_dma_radar.Tarkov.Features.MemoryWrites
                             LoneLogging.WriteLine($"Optical Culling -> {targetCulling}");
                         }
                     }
-
-                    // Find all players needing Chams
+                    // Chams
                     var players = game.Players
                         .Where(x => x.IsHostileActive)
                         .Where(x => x.ChamsMode != mode);
-
                     if (!players.Any()) // Already Set
                         return;
+                    int materialID;
+                    switch (mode)
+                    {
+                        case ChamsManager.ChamsMode.Basic:
+                            var ssaa = MonoBehaviour.GetComponent(cm.FPSCamera, "SSAA");
+                            var opticMaskMaterial = Memory.ReadPtr(ssaa + UnityOffsets.SSAA.OpticMaskMaterial);
+                            var opticMonoBehaviour = Memory.ReadPtr(opticMaskMaterial + ObjectClass.MonoBehaviourOffset);
+                            materialID = Memory.ReadValue<MonoBehaviour>(opticMonoBehaviour).InstanceID;
+                            break;
+                        case ChamsManager.ChamsMode.Visible:
+                            if (ChamsManager.Materials!.TryGetValue(ChamsManager.ChamsMode.Visible, out var visible) &&
+                                visible.InstanceID < 0)
+                            {
+                                materialID = visible.InstanceID;
+                            }
+                            else
+                            {
+                                return;
+                            }
+                            break;
+                        case ChamsManager.ChamsMode.VisCheck:
+                            if (ChamsManager.Materials!.TryGetValue(ChamsManager.ChamsMode.VisCheck, out var vischeck) &&
+                                vischeck.InstanceID < 0)
+                            {
+                                materialID = vischeck.InstanceID;
+                            }
+                            else
+                            {
+                                return;
+                            }
+                            break;
+                        default:
+                            throw new NotImplementedException(nameof(mode));
+                    }
 
                     using var hChamsScatter = new ScatterWriteHandle();
-
                     foreach (var player in players)
                     {
-                        int materialID = GetMaterialID(mode, player); // Select correct material based on PlayerT
-
-                        // Apply Chams to player
                         player.SetChams(hChamsScatter, game, mode, materialID);
-                        LoneLogging.WriteLine($"Chams applied to {player.Name} ({player.Type})");
                     }
                 }
             }
@@ -81,18 +103,6 @@ namespace eft_dma_radar.Tarkov.Features.MemoryWrites
             {
                 LoneLogging.WriteLine($"ERROR configuring Chams: {ex}");
             }
-        }
-        private int GetMaterialID(ChamsManager.ChamsMode mode, Player player)
-        {
-            string playerTypeCategory = player.IsPmc || player.Type == Player.PlayerType.AIBoss ? "PMC" : "AI";
-
-            if (ChamsManager.Materials.TryGetValue((mode, playerTypeCategory), out var material) && material.InstanceID < 0)
-            {
-                return material.InstanceID;
-            }
-
-            LoneLogging.WriteLine($"[ERROR] Could not retrieve material ID for {mode} - {playerTypeCategory}");
-            return -1;
         }
     }
 }

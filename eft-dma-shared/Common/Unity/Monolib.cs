@@ -1,12 +1,10 @@
 ﻿using eft_dma_shared.Common.DMA.ScatterAPI;
 using eft_dma_shared.Common.DMA;
-using eft_dma_shared.Common.Misc.Commercial;
 using eft_dma_shared.Common.Misc;
 using eft_dma_shared.Common.Unity.Collections;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Text;
-using eft_dma_shared.Common.Unity.LowLevel.Hooks;
 
 namespace eft_dma_shared.Common.Unity
 {
@@ -405,17 +403,10 @@ namespace eft_dma_shared.Common.Unity
 
         [StructLayout(LayoutKind.Explicit, Pack = 1)]
         public readonly struct MonoMethod
-        {            
-            public static implicit operator ulong(MonoMethod x) => x.Base;
-            [FieldOffset(0x0)]
-            private readonly ulong Base;
-            public readonly int GetParamCount() => NativeMethods.GetMonoMethodParamCount(Base);
+        {
             [FieldOffset(0x18)]
             public readonly ulong pName;
-            public MonoMethod(ulong baseAddress)
-            {
-                Base = baseAddress;
-            }
+
             public readonly string GetName() =>
                 ReadName(pName, 128);
         }
@@ -574,38 +565,6 @@ namespace eft_dma_shared.Common.Unity
                 }
                 return monoPtr;
             }
-            public readonly MonoMethod FindMethodE(string methodName, int paramCount = -1)
-            {
-                ulong monoPtr = 0x0;
-
-                int methodCount = this.GetNumMethods();
-                if (methodCount > 5000)
-                {
-                    LoneLogging.WriteLine($"[MONO] FindMethod(): methodCount is out of bounds!");
-                    return default;
-                }
-
-                for (int i = 0; i < methodCount; i++)
-                {
-                    var method = GetMethod(i);
-
-                    if (method == 0x0)
-                        continue;
-
-                    if (method.Value.GetName() == methodName)
-                    {
-                        if (paramCount != -1)
-                        {
-                            if (method.Value.GetParamCount() == paramCount)
-                                monoPtr = method;
-                        }
-                        else
-                            monoPtr = method;
-                    }
-                }
-
-                return new MonoMethod(monoPtr);
-            }
 
             public readonly ulong FindJittedMethod(string methodName)
             {
@@ -723,83 +682,7 @@ namespace eft_dma_shared.Common.Unity
                 }
                 throw new Exception("Cannot find class " + className);
             }
-            public static MonoClass FindClass(string assemblyName, string className, int subclass = -1)
-            {
-                var rootDomain = MonoRootDomain.Get();
-                if (rootDomain == 0x0)
-                    return default;
-                var domainAssembly = MonoAssembly.Open(rootDomain.Value, assemblyName);
-                if (domainAssembly.Equals(default(MonoAssembly)))
-                    return default;
-                var monoImage = domainAssembly.GetMonoImage();
-                if (monoImage == 0x0)
-                    return default;
-                var tableInfo = monoImage.Value.GetTableInfo(monoImage, 2);
-                if (tableInfo == 0x0)
-                    return default;
-                int rowCount = tableInfo.Value.GetRows();
-                if (rowCount > 25000)
-                {
-                    LoneLogging.WriteLine($"[MONO] -> FindClass(): rowCount is out of bounds!");
-                    return default;
-                }
-                // Subclass stuff
-                int currSubclassOffset = 0;
-                bool mainClassFound = false;
-                bool findSubclass = className.Contains('+');
-                bool findSubclassAlt = subclass > -1;
-                List<string> subclassParts = new();
-                if (findSubclass)
-                    subclassParts = className.Split('+').ToList();
-                if (findSubclass && subclassParts.Count < 2)
-                    LoneLogging.WriteLine($"[MONO] -> FindClass(): Invalid subclass markup! The definition must have the main class name and at least one subclass.");
-                for (int i = 0; i < rowCount; i++)
-                {
-                    var ptr = MonoRead<MonoClass>(MonoRead<MonoHashTable>(monoImage + 0x4D0).Value.Lookup((ulong)(0x02000000 | i + 1)));
-
-                    if (ptr == 0x0)
-                        continue;
-                    var name = ptr.Value.GetName();
-                    var ns = ptr.Value.GetNamespaceName();
-                    if (ns.Length != 0)
-                        name = ns + "." + name;
-                    // Clean mangled names
-                    if (name.Contains('`'))
-                        name = name.Split('`')[0];
-                    bool found = false;
-                    if (findSubclass)
-                        found = name.Equals(subclassParts[0], StringComparison.OrdinalIgnoreCase);
-                    if (mainClassFound)
-                    {
-                        if (findSubclassAlt)
-                        {
-                            if (currSubclassOffset == subclass)
-                                return ptr.Value;
-                        }
-                        else if (findSubclass)
-                        {
-                            if (found && subclassParts.Count == 1) // If there is only one item left we found the target subclass!
-                                return ptr.Value;
-                            else if (found) // Remove this entry since we just found it. Begin looking for the next one!
-                                subclassParts.RemoveRange(0, 1);
-                        }
-                        currSubclassOffset++;
-                    }
-                    else if (name == className)
-                    {
-                        if (findSubclassAlt)
-                            mainClassFound = true;
-                        else return ptr.Value;
-                    }
-                    else if (findSubclass && found)
-                    {
-                        mainClassFound = true;
-                        subclassParts.RemoveRange(0, 1); // Remove the main class since we found it.
-                    }
-                }
-                return default;
-            }            
-        }    
+        }
 
         [StructLayout(LayoutKind.Explicit, Pack = 1)]
         private readonly struct MonoHashTable

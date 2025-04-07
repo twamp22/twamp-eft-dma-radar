@@ -1,4 +1,4 @@
-﻿using eft_dma_shared.Common.Misc.Commercial;
+﻿using eft_dma_shared.Common.Misc;
 using System.Runtime;
 using System.Runtime.InteropServices;
 
@@ -26,7 +26,7 @@ namespace eft_dma_shared.Common
                 try
                 {
                     var info = new MEMORYSTATUSEX();
-                    if (GlobalMemoryStatusEx(ref info) && info.dwMemoryLoad >= 90) // Over 90% memory usage
+                    if (GlobalMemoryStatusEx(ref info) && info.dwMemoryLoad >= 95) // Over 95% memory usage
                     {
                         LoneLogging.WriteLine("[ResourceJanitor] High Memory Load, running cleanup...");
                         Run(false);

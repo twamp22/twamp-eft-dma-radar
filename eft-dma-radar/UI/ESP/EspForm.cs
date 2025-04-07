@@ -1,4 +1,5 @@
-﻿using eft_dma_radar.Tarkov;
+﻿using eft_dma_shared.Common.Misc;
+using eft_dma_radar.Tarkov;
 using eft_dma_radar.Tarkov.EFTPlayer;
 using eft_dma_radar.Tarkov.Features;
 using eft_dma_radar.Tarkov.Features.MemoryWrites;
@@ -9,8 +10,6 @@ using eft_dma_radar.UI.Misc;
 using eft_dma_radar.UI.Radar;
 using eft_dma_shared.Common.ESP;
 using eft_dma_shared.Common.Features;
-using eft_dma_shared.Common.Misc;
-using eft_dma_shared.Common.Misc.Commercial;
 using eft_dma_shared.Common.Misc.Data;
 using eft_dma_shared.Common.Players;
 using eft_dma_shared.Common.Unity;
@@ -26,7 +25,6 @@ namespace eft_dma_radar.UI.ESP
         private readonly PrecisionTimer _renderTimer;
         private int _fpsCounter;
         private int _fps;
-        public static bool drawDemoCrap = false;
 
         /// <summary>
         /// Singleton Instance of EspForm.
@@ -91,7 +89,6 @@ namespace eft_dma_radar.UI.ESP
 
         public EspForm()
         {
-            EspForm.Window = this;
             InitializeComponent();
             CenterToScreen();
             skglControl_ESP.DoubleClick += ESP_DoubleClick;
@@ -113,149 +110,11 @@ namespace eft_dma_radar.UI.ESP
             this.Shown += EspForm_Shown;
         }
 
-
-        public void SetClickThrough(bool enable)
-        {
-            if (enable)
-            {
-                ESPClickThroughHelper.ApplyClickThrough(this);
-            }
-            else
-            {
-                ESPClickThroughHelper.RemoveClickThrough(this);
-            }
-        }
-
-        public void ApplyChromaKey(uint chromaKeyColor = 0x000000)
-        {
-            if (this.InvokeRequired)
-            {
-                this.Invoke(new Action(() =>
-                {         
-                    ESPClickThroughHelper.ApplyChromaKey(this, chromaKeyColor);
-                }));
-            }
-            else
-            {
-                ESPClickThroughHelper.ApplyChromaKey(this, chromaKeyColor);
-            }
-        }
-        
-        //public void RemoveChromaKey()
-        //{
-        //    if (this.InvokeRequired)
-        //    {
-        //        this.Invoke(new Action(() =>
-        //        {
-        //            ESPClickThroughHelper.RemoveClickThrough(this);
-        //        }));
-        //    }
-        //    else
-        //    {
-        //        ESPClickThroughHelper.RemoveClickThrough(this);
-        //    }
-        //}
-
-        private static class ESPClickThroughHelper
-        {
-            private const int GWL_EXSTYLE = -20;
-            private const long WS_EX_LAYERED = 0x80000;
-            private const long WS_EX_TRANSPARENT = 0x20;
-            private const int LWA_COLORKEY = 0x1;
-
-            [DllImport("user32.dll")]
-            public static extern long GetWindowLong(IntPtr hWnd, int nIndex);
-
-            [DllImport("user32.dll")]
-            public static extern long SetWindowLong(IntPtr hWnd, int nIndex, long dwNewLong);
-
-            [DllImport("user32.dll")]
-            private static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint crKey, byte bAlpha, uint dwFlags);
-
-            public static void ApplyClickThrough(Form targetForm)
-            {
-                IntPtr hwnd = targetForm.Handle;
-                long exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-
-                SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED | WS_EX_TRANSPARENT);
-
-                //EnsureLayered(targetForm);
-                //EnsureTransparent(targetForm);
-                Debug.WriteLine($"Click-through applied to ESP window (Handle: {hwnd}).");
-            }
-
-            public static void RemoveClickThrough(Form targetForm)
-            {
-                IntPtr hwnd = targetForm.Handle;
-                long exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-                SetWindowLong(hwnd, GWL_EXSTYLE, exStyle & ~(WS_EX_LAYERED | WS_EX_TRANSPARENT));
-                Debug.WriteLine($"Click-through removed from ESP window (Handle: {hwnd}).");
-            }
-            public static void ApplyChromaKey(Form targetForm, uint chromaKeyColor = 0x000000)
-            {
-                IntPtr hwnd = targetForm.Handle;
-                SetLayeredWindowAttributes(hwnd, chromaKeyColor, 0, LWA_COLORKEY);
-                Debug.WriteLine($"Chroma key applied (Handle: {hwnd}).");
-            }
-            public static void EnsureLayered(Form targetForm)
-            {
-                // Retrieves the window handle of the target form.
-                IntPtr hwnd = targetForm.Handle;
-
-                // Gets the extended window style (exStyle) of the window.
-                long exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-
-                // Log the current flags for debugging.
-                Debug.WriteLine($"ESP window current exStyle: 0x{exStyle:X8} (Handle: {hwnd})");
-
-                SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED);
-                Debug.WriteLine($"Applied WS_EX_LAYERED to ESP window (Handle: {hwnd}).");
-            }
-
-            public static void EnsureTransparent(Form targetForm)
-            {
-                // Retrieves the window handle of the target form.
-                IntPtr hwnd = targetForm.Handle;
-
-                // Gets the extended window style (exStyle) of the window.
-                long exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-
-                // Log the current flags for debugging.
-                Debug.WriteLine($"ESP window current exStyle: 0x{exStyle:X8} (Handle: {hwnd})");
-
-                SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT);
-                Debug.WriteLine($"Applied WS_EX_TRANSPARENT to ESP window (Handle: {hwnd}).");
-            }
-            
-            [DllImport("user32.dll")]
-            private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, SetWindowPosFlags uFlags);
-
-            [Flags]
-            private enum SetWindowPosFlags : uint
-            {
-                SWP_NOMOVE = 0x0002,
-                SWP_NOSIZE = 0x0001,
-                SWP_NOZORDER = 0x0004,
-                SWP_FRAMECHANGED = 0x0020
-            }
-        }
-
         private async void EspForm_Shown(object sender, EventArgs e)
         {
             while (!this.IsHandleCreated)
                 await Task.Delay(25);
             Window ??= this;
-
-            // Handle always on top after chroma and clickthrough
-            this.TopMost = Program.Config.ESP.AlwaysOnTop;
-
-            if (Program.Config.ESP.ClickThrough)
-            {
-                this.SetClickThrough(Config.ESP.ClickThrough);
-                this.ApplyChromaKey(0x000000);
-            }
-
-            // Start rendering loop *after* window state is correct
             CameraManagerBase.EspRunning = true;
             _renderTimer.Start();
             /// Begin Render
@@ -271,30 +130,9 @@ namespace eft_dma_radar.UI.ESP
             });
         }
 
-        private void DrawDemoCrap(SKCanvas canvas)
-        {
-            var random = new Random();
-
-            // Get the canvas size dynamically:
-            var width = canvas.DeviceClipBounds.Width;
-            var height = canvas.DeviceClipBounds.Height;
-
-            for (int i = 0; i < 10; i++)
-            {
-                canvas.DrawCircle(
-                    new SKPoint(random.Next(0, width), random.Next(0, height)),
-                    random.Next(10, 100),
-                    SKPaints.PaintBasicESP
-                );
-            }
-        }
         #endregion
 
         #region Form Methods
-        public void SetAlwaysOnTop(bool enable)
-        {
-            this.TopMost = enable;
-        }
 
         /// <summary>
         /// Purge SkiaSharp Resources.
@@ -339,7 +177,6 @@ namespace eft_dma_radar.UI.ESP
             Height = view.Height;
             if (!toFullscreen)
                 CenterToScreen();
-            this.TopMost = Program.Config.ESP.AlwaysOnTop;
         }
 
         /// <summary>
@@ -374,10 +211,6 @@ namespace eft_dma_radar.UI.ESP
             canvas.Clear();
             try
             {
-                //FOR DEBUGGING
-                if (drawDemoCrap)
-                    DrawDemoCrap(canvas);
-
                 var localPlayer = LocalPlayer; // Cache ref
                 var allPlayers = AllPlayers; // Cache ref
                 if (localPlayer is not null && allPlayers is not null)
@@ -414,8 +247,6 @@ namespace eft_dma_radar.UI.ESP
                             DrawFireportAim(canvas, localPlayer);
                         if (Config.ESP.ShowStatusText)
                             DrawStatusText(canvas);
-                        if (Config.ESP.ShowSwitches && GameData.Switches.TryGetValue(MapID, out var switches))
-                            DrawSwitches(canvas, localPlayer);
                     }
                 }
             }
@@ -631,29 +462,6 @@ namespace eft_dma_radar.UI.ESP
                     exit.DrawESP(canvas, localPlayer);
         }
 
-        private static void DrawSwitches(SKCanvas canvas, LocalPlayer localPlayer)
-        {
-            if (GameData.Switches.TryGetValue(MapID, out var switches))
-            {
-                foreach (var switchEntry in switches)
-                {
-                    var switchPos = switchEntry.Value;
-                    if (!CameraManagerBase.WorldToScreen(ref switchPos, out var screenPos))
-                    {
-                        continue;
-                    }
-                    canvas.DrawText(switchEntry.Key, screenPos, SKPaints.TextSwitchesESP);
-                    if (ESP.Config.ShowDistances)
-                    {
-                        var distance = Vector3.Distance(localPlayer.Position, switchPos);
-                        var distanceText = $"{distance:F0}m";
-                        var distancePoint = new SKPoint(screenPos.X, screenPos.Y + SKPaints.TextSwitchesESP.TextSize);
-                        canvas.DrawText(distanceText, distancePoint, SKPaints.TextSwitchesESP);
-                    }
-                }
-            }
-        }
-
         /// <summary>
         /// Draw all grenades within range.
         /// </summary>
@@ -750,12 +558,6 @@ namespace eft_dma_radar.UI.ESP
             }
         }
 
-        protected override void OnFormClosed(FormClosedEventArgs e)
-        {
-            base.OnFormClosed(e);
-            Window = null;
-        }
-
-    #endregion
+        #endregion
     }
 }
