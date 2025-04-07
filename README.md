@@ -27,7 +27,7 @@ This repository is organized into several branches, each serving a specific purp
     <td><strong>[EFT ONLY]</strong> <i>Radar features only (no memory writes)</i></td>
   </tr>
   <tr>
-    <td><a href="../../tree/arena">arena</a></td>
+    <td><a href="../../tree/arena">arena-community</a></td>
     <td><strong>[ARENA ONLY]</strong> <i>Enhanced with community features specialized for arena gameplay</i></td>
   </tr>
   <tr>
