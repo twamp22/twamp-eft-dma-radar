@@ -1,5 +1,5 @@
 # Lone's EFT DMA Radar
-<img src="https://github.com/user-attachments/assets/d3bc58ad-a987-4c94-bfe2-dd2236769f19" width="50%" alt="icon-static">
+<img src="https://github.com/user-attachments/assets/d3bc58ad-a987-4c94-bfe2-dd2236769f19" width="33%" alt="icon-static">
 
 ## Branch Overview
 This repository is organized into several branches, each serving a specific purpose:
@@ -9,29 +9,29 @@ This repository is organized into several branches, each serving a specific purp
     <th>Branch</th>
     <th>Description</th>
   </tr>
-  <tr style="background-color: #2d333b;">
-    <td><a href="../../tree/master"><strong>master</strong></a> <span>← You are here</span></td>
-    <td>[EFT] Unmodified version from upstream, kept in sync with the original repository</td>
+  <tr>
+    <td><a href="../../tree/master"><strong>master</strong></a></td>
+    <td><strong>[EFT]</strong> Unmodified version from upstream, kept in sync with the original repository</td>
   </tr>
   <tr>
     <td><a href="../../tree/pvp-community">pvp-community</a></td>
-    <td>[EFT] Enhanced with community features focused on PvP gameplay</td>
+    <td><strong>[EFT]</strong> Enhanced with community features focused on PvP gameplay</td>
   </tr>
   <tr>
     <td><a href="../../tree/pve-community">pve-community</a></td>
-    <td>[EFT] Enhanced with community features focused on PvE gameplay</td>
+    <td><strong>[EFT]</strong> Enhanced with community features focused on PvE gameplay</td>
   </tr>
   <tr>
     <td><a href="../../tree/eft-read-only">eft-read-only</a></td>
-    <td>[EFT] Radar features only (no memory writes)</td>
+    <td><strong>[EFT]</strong> Radar features only (no memory writes)</td>
   </tr>
   <tr>
     <td><a href="../../tree/arena">arena</a></td>
-    <td>[ARENA] Specialized branch for Arena gameplay with full features</td>
+    <td><strong>[ARENA]</strong> Specialized branch for Arena gameplay with full features</td>
   </tr>
   <tr>
     <td><a href="../../tree/arena-read-only">arena-read-only</a></td>
-    <td>[ARENA] Radar features only (no memory writes)</td>
+    <td><strong>[ARENA]</strong> Radar features only (no memory writes)</td>
   </tr>
 </table>
 
