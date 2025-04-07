@@ -1,4 +1,3 @@
-# LoneEFT by Twamp
 # Lone's EFT DMA Radar
 <img src="https://github.com/user-attachments/assets/d3bc58ad-a987-4c94-bfe2-dd2236769f19" width="33%" alt="icon-static">
 
@@ -27,7 +26,7 @@ This repository is organized into several branches, each serving a specific purp
     <td><strong>[EFT ONLY]</strong> <i>Radar features only (no memory writes)</i></td>
   </tr>
   <tr>
-    <td><a href="../../tree/arena">arena-community</a></td>
+    <td><a href="../../tree/arena-community">arena-community</a></td>
     <td><strong>[ARENA ONLY]</strong> <i>Enhanced with community features specialized for arena gameplay</i></td>
   </tr>
   <tr>
