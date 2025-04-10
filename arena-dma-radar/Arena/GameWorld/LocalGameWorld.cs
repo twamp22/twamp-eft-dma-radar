@@ -5,7 +5,6 @@ using eft_dma_shared.Common.Features;
 using eft_dma_shared.Common.Misc;
 using eft_dma_shared.Common.DMA.ScatterAPI;
 using eft_dma_shared.Common.Unity;
-using arena_dma_radar.Arena.Features.MemoryWrites;
 using eft_dma_shared.Common.Misc.Data;
 using eft_dma_shared.Common.Misc.Commercial;
 
@@ -281,7 +280,7 @@ namespace arena_dma_radar.Arena.GameWorld
                 LoneLogging.WriteLine("Realtime thread starting...");
                 while (InRaid)
                 {
-                    if (Program.Config.RatelimitRealtimeReads || !CameraManagerBase.EspRunning || (MemWriteFeature<Aimbot>.Instance.Enabled && Aimbot.Engaged))
+                    if (Program.Config.RatelimitRealtimeReads || !CameraManagerBase.EspRunning)
                         _refreshWait.AutoWait(TimeSpan.FromMilliseconds(1), 1000);
                     ct.ThrowIfCancellationRequested();
                     RealtimeLoop(); // Realtime update loop (player positions, etc.)

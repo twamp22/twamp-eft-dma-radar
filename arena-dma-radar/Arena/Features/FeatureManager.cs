@@ -1,5 +1,4 @@
-﻿using arena_dma_radar.Arena.Features.MemoryWrites;
-using arena_dma_radar.Arena.GameWorld;
+﻿using arena_dma_radar.Arena.GameWorld;
 using arena_dma_radar.UI.Misc;
 using eft_dma_shared.Common.DMA;
 using eft_dma_shared.Common.DMA.ScatterAPI;
@@ -39,41 +38,6 @@ namespace arena_dma_radar.Arena.Features
                 try
                 {
                     if (MemDMABase.WaitForProcess() && MemWrites.Enabled && Memory.Ready)
-                    {
-                        while (MemWrites.Enabled && Memory.Ready)
-                        {
-                            if (MemWrites.Config.AdvancedMemWrites && !NativeHook.Initialized)
-                            {
-                                NativeHook.Initialize();
-                            }
-                            if (NativeHook.Initialized &&
-                                 Chams.Config.Mode is not ChamsManager.ChamsMode.Basic &&
-                                 ChamsManager.Materials.Count == 0)
-                            {
-                                ChamsManager.Initialize();
-                            }
-                            if (MemWrites.Config.AntiPage && NativeHook.Initialized && !AntiPage.Initialized)
-                            {
-                                AntiPage.Initialize();
-                            }
-                            var memWrites = IFeature.AllFeatures
-                                .OfType<IMemWriteFeature>()
-                                .Where(feature => feature.CanRun);
-                            if (memWrites.Any())
-                            {
-                                ExecuteMemWrites(memWrites);
-                            }
-                            var patches = IFeature.AllFeatures
-                                .OfType<IMemPatchFeature>()
-                                .Where(feature => feature.CanRun);
-                            if (patches.Any())
-                            {
-                                ExecuteMemPatches(patches);
-                            }
-                            Thread.Sleep(10);
-                        }
-                    }
-                    else
                     {
                         Thread.Sleep(100);
                     }

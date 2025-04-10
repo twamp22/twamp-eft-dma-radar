@@ -1,11 +1,9 @@
-﻿using arena_dma_radar.Features;
-using arena_dma_radar.Arena.ArenaPlayer;
+﻿using arena_dma_radar.Arena.ArenaPlayer;
 using arena_dma_radar.Arena.GameWorld;
 using arena_dma_radar.UI.Misc;
 using eft_dma_shared.Common.Features;
 using eft_dma_shared.Common.Misc;
 using eft_dma_shared.Common.Unity;
-using arena_dma_radar.Arena.Features.MemoryWrites;
 using eft_dma_shared.Common.ESP;
 using eft_dma_shared.Common.Players;
 using eft_dma_shared.Common.Misc.Commercial;
@@ -185,17 +183,10 @@ namespace arena_dma_radar.UI.ESP
                             DrawGrenades(canvas, localPlayer);
                         foreach (var player in allPlayers)
                             player.DrawESP(canvas, localPlayer);
-                        if (Config.ESP.ShowAimFOV && MemWriteFeature<Aimbot>.Instance.Enabled && localPlayer.IsAlive)
-                            DrawAimFOV(canvas);
                         if (Config.ESP.ShowFPS)
                             DrawFPS(canvas);
                         if (Config.ESP.ShowMagazine && localPlayer.IsAlive)
                             DrawMagazine(canvas, localPlayer);
-                        if (Config.ESP.ShowFireportAim &&
-                            localPlayer.IsAlive &&
-                            !CameraManagerBase.IsADS &&
-                            !(ESP.Config.ShowAimLock && MemWriteFeature<Aimbot>.Instance.Cache?.AimbotLockedPlayer is not null))
-                            DrawFireportAim(canvas, localPlayer);
                         if (Config.ESP.ShowStatusText)
                             DrawStatusText(canvas);
                     }
@@ -216,25 +207,7 @@ namespace arena_dma_radar.UI.ESP
         {
             try
             {
-                var aimEnabled = Aimbot.Config.Enabled;
-                string label;
-                if (aimEnabled)
-                {
-                    var mode = Aimbot.Config.TargetingMode;
-                    if (Aimbot.Config.RandomBone.Enabled)
-                        label = $"{mode.GetDescription()}: Random Bone";
-                    else if (Aimbot.Config.SilentAim.AutoBone)
-                        label = $"{mode.GetDescription()}: Auto Bone";
-                    else
-                    {
-                        var bone = Aimbot.Config.Bone;
-                        label = $"{mode.GetDescription()}: {bone.GetDescription()}";
-                    }
-                }
-                else if (MemWriteFeature<NoRecoil>.Instance.Enabled)
-                    label = "No Recoil";
-                else
-                    return;
+                string label = "";
                 var clientArea = skglControl_ESP.ClientRectangle;
                 var spacing = 1f * Config.ESP.FontScale;
                 canvas.DrawStatusText(clientArea, SKPaints.TextStatusSmallEsp, spacing, label);
@@ -309,13 +282,6 @@ namespace arena_dma_radar.UI.ESP
 
             canvas.DrawLine(fireportPosScr, targetScr, SKPaints.PaintBasicESP);
         }
-
-        /// <summary>
-        /// Draw the Aim FOV Circle.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void DrawAimFOV(SKCanvas canvas) =>
-            canvas.DrawCircle(CameraManagerBase.ViewportCenter, Aimbot.Config.FOV, SKPaints.PaintBasicESP);
 
         /// <summary>
         /// Draw all grenades within range.

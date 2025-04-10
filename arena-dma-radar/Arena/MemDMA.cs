@@ -257,38 +257,6 @@ namespace arena_dma_radar.Arena
 
         #endregion
 
-        #region R/W Methods
-        /// <summary>
-        /// Write value type/struct to specified address.
-        /// </summary>
-        /// <typeparam name="T">Specified Value Type.</typeparam>
-        /// <param name="game">Game instance to write to.</param>
-        /// <param name="addr">Address to write to.</param>
-        /// <param name="value">Value to write.</param>
-        public void WriteValue<T>(LocalGameWorld game, ulong addr, T value)
-            where T : unmanaged
-        {
-            if (!game.IsSafeToWriteMem)
-                throw new Exception("Not safe to write!");
-            WriteValue(addr, value);
-        }
-
-        /// <summary>
-        /// Write byte array buffer to Memory Address.
-        /// </summary>
-        /// <param name="game">Current Game Instance.</param>
-        /// <param name="addr">Address to write to.</param>
-        /// <param name="buffer">Buffer to write.</param>
-        public void WriteBuffer<T>(LocalGameWorld game, ulong addr, Span<T> buffer)
-            where T : unmanaged
-        {
-            if (!game.IsSafeToWriteMem)
-                throw new Exception("Not safe to write!");
-            WriteBuffer(addr, buffer);
-        }
-
-        #endregion
-
         #region Misc
 
         /// <summary>

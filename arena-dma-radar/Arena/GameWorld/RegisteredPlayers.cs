@@ -2,7 +2,6 @@
 using eft_dma_shared.Common.DMA.ScatterAPI;
 using eft_dma_shared.Common.Unity.Collections;
 using arena_dma_radar.Arena.Features;
-using arena_dma_radar.Arena.Features.MemoryWrites;
 using eft_dma_shared.Common.Misc.Commercial;
 
 namespace arena_dma_radar.Arena.GameWorld
@@ -42,7 +41,6 @@ namespace arena_dma_radar.Arena.GameWorld
                 if (mainPlayer != LocalPlayer)
                 {
                     lock (MemWrites.SyncRoot) // Prevent race conditions with DMA Toolkit
-                    lock (Aimbot.SyncRoot) // and Aimbot
                     {
                         LoneLogging.WriteLine("Re-Allocating LocalPlayer (Memory Address Changed)");
                         var localPlayer = new LocalPlayer(mainPlayer);

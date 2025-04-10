@@ -11,7 +11,6 @@ using eft_dma_shared.Common.Unity.Collections;
 using eft_dma_shared.Common.Unity.LowLevel;
 using eft_dma_shared.Common.Players;
 using eft_dma_shared.Common.Maps;
-using arena_dma_radar.Arena.Features.MemoryWrites;
 using eft_dma_shared.Common.Misc.Commercial;
 using eft_dma_shared.Common.ESP;
 using eft_dma_shared.Common.Misc.Pools;
@@ -887,20 +886,6 @@ namespace arena_dma_radar.Arena.ArenaPlayer
                 var textPt = new SKPoint(baseScrPos.X,
                     baseScrPos.Y + (paint.Item2.TextSize * ESP.Config.FontScale));
                 textPt.DrawESPText(canvas, observed, localPlayer, false, paint.Item2, lines.ToArray());
-            }
-            if (ESP.Config.ShowAimLock && this.IsAimbotLocked) // Show aim lock
-            {
-                var info = MemWriteFeature<Aimbot>.Instance.Cache;
-                if (info is not null &&
-                    info.LastFireportPos is Vector3 fpPos &&
-                    info.LastPlayerPos is Vector3 playerPos)
-                {
-                    if (!CameraManagerBase.WorldToScreen(ref fpPos, out var fpScreen))
-                        return;
-                    if (!CameraManagerBase.WorldToScreen(ref playerPos, out var playerScreen))
-                        return;
-                    canvas.DrawLine(fpScreen, playerScreen, SKPaints.PaintBasicESP);
-                }
             }
         }
 

@@ -4,7 +4,6 @@ using arena_dma_radar.UI.ESP;
 using eft_dma_shared.Common.DMA;
 using eft_dma_shared.Common.Unity;
 using eft_dma_shared.Common.Unity.LowLevel;
-using arena_dma_radar.Arena.Features.MemoryWrites;
 using eft_dma_shared.Common.ESP;
 using eft_dma_shared.Common.Players;
 using eft_dma_shared.Common.Misc.Config;
@@ -345,12 +344,6 @@ namespace arena_dma_radar.UI.Misc
         /// </summary>
         [JsonPropertyName("enabled")]
         public bool Enabled { get; set; } = false;
-
-        /// <summary>
-        /// Last Aimbot Targeting Mode that the player set.
-        /// </summary>
-        [JsonPropertyName("targetingMode")]
-        public Aimbot.AimbotTargetingMode TargetingMode { get; set; } = Aimbot.AimbotTargetingMode.FOV;
 
         /// <summary>
         /// Aimbot FOV via ESP Circle.

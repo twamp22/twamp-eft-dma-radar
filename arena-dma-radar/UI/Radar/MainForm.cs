@@ -1,5 +1,4 @@
 using DarkModeForms;
-using arena_dma_radar.Features.MemoryWrites.UI;
 using arena_dma_radar.Arena.ArenaPlayer;
 using arena_dma_radar.Arena.GameWorld;
 using arena_dma_radar.UI.ColorPicker;
@@ -16,8 +15,6 @@ using eft_dma_shared.Common.Unity;
 using eft_dma_shared.Common.Unity.LowLevel;
 using eft_dma_shared.Common.Maps;
 using arena_dma_radar.Arena.Features;
-using arena_dma_radar.Arena.Features.MemoryWrites;
-using arena_dma_radar.Arena.Features.MemoryWrites.Patches;
 using eft_dma_shared.Common.ESP;
 using eft_dma_shared.Common.Misc.Commercial;
 
@@ -126,7 +123,6 @@ namespace arena_dma_radar.UI.Radar
             EspColorOptions.LoadColors(Config);
             SetUiEventHandlers();
             LoadHotkeyManager();
-            SetMemWriteFeatures();
             SetUiValues();
             var interval = TimeSpan.FromMilliseconds(1000d / Config.RadarTargetFPS);
             _renderTimer = new(interval);
@@ -364,9 +360,6 @@ namespace arena_dma_radar.UI.Radar
             skglControl_Radar.MouseUp += MapCanvas_MouseUp;
             skglControl_Radar.MouseDoubleClick += MapCanvas_MouseDblClick;
             tabControl1.SelectedIndexChanged += TabControl1_SelectedIndexChanged;
-            trackBar_NoRecoil.ValueChanged += TrackBar_NoRecoil_ValueChanged;
-            trackBar_NoSway.ValueChanged += TrackBar_NoSway_ValueChanged;
-            trackBar_AimFOV.ValueChanged += TrackBar_AimFOV_ValueChanged;
         }
 
         /// <summary>
@@ -504,8 +497,6 @@ namespace arena_dma_radar.UI.Radar
             trackBar_UIScale.Value = (int)Math.Round(Config.UIScale * 100);
             textBox_ResWidth.Text = Config.MonitorWidth.ToString();
             textBox_ResHeight.Text = Config.MonitorHeight.ToString();
-            textBox_VischeckVisColor.Text = Chams.Config.VisibleColor;
-            textBox_VischeckInvisColor.Text = Chams.Config.InvisibleColor;
             CameraManagerBase.UpdateViewportRes();
             LoadESPConfig();
             checkBox_HideNames.Checked = Config.HideNames;
@@ -583,87 +574,6 @@ namespace arena_dma_radar.UI.Radar
             }
         }
 
-        private void SetMemWriteFeatures()
-        {
-            /// Setup Memwrites
-            checkBox_EnableMemWrite.Checked = MemWrites.Enabled;
-            flowLayoutPanel_MemWrites.Enabled = MemWrites.Enabled;
-            checkBox_AdvancedMemWrites.Checked = MemWrites.Config.AdvancedMemWrites;
-            ToggleAdvMemwriteFeatures(MemWrites.Config.AdvancedMemWrites);
-            checkBox_EnableMemWrite.CheckedChanged += checkBox_EnableMemWrite_CheckedChanged;
-            checkBox_AdvancedMemWrites.CheckedChanged += checkBox_AdvancedMemWrites_CheckedChanged;
-            /// Set Features
-            checkBox_NoRecoilSway.Checked = MemWriteFeature<NoRecoil>.Instance.Enabled;
-            checkBox_Chams.Checked = MemWriteFeature<Chams>.Instance.Enabled;
-            checkBox_NoVisor.Checked = MemWriteFeature<NoVisor>.Instance.Enabled;
-            trackBar_NoRecoil.Value = Config.MemWrites.NoRecoilAmount;
-            trackBar_NoSway.Value = Config.MemWrites.NoSwayAmount;
-            checkBox_NoWepMalf.Checked = MemPatchFeature<NoWepMalfPatch>.Instance.Enabled;
-
-            /// Aimbot Bones
-            var bones = new List<BonesListItem>();
-            foreach (var bone in Aimbot.BoneNames)
-                bones.Add(new BonesListItem(bone));
-            comboBox_AimbotTarget.Items.AddRange(bones.ToArray());
-            comboBox_AimbotTarget.SelectedIndex = comboBox_AimbotTarget.FindStringExact(Bones.HumanSpine3.GetDescription());
-            comboBox_AimbotTarget.SelectedIndexChanged += comboBox_AimbotTarget_SelectedIndexChanged;
-
-            checkBox_AimBotEnabled.Checked = MemWriteFeature<Aimbot>.Instance.Enabled;
-            comboBox_AimbotTarget.SelectedIndex =
-                comboBox_AimbotTarget.FindStringExact(Aimbot.Config.Bone.GetDescription());
-            trackBar_AimFOV.Value = (int)Math.Round(Aimbot.Config.FOV);
-            checkBox_SA_AutoBone.Checked = Aimbot.Config.SilentAim.AutoBone;
-            checkBox_SA_SafeLock.Checked = Aimbot.Config.SilentAim.SafeLock;
-            checkBox_AimRandomBone.Checked = Aimbot.Config.RandomBone.Enabled;
-
-
-            switch (Aimbot.Config.TargetingMode)
-            {
-                case Aimbot.AimbotTargetingMode.FOV:
-                    radioButton_AimTarget_FOV.Checked = true;
-                    break;
-                case Aimbot.AimbotTargetingMode.CQB:
-                    radioButton_AimTarget_CQB.Checked = true;
-                    break;
-            }
-            switch (Chams.Config.Mode)
-            {
-                case ChamsManager.ChamsMode.Basic:
-                    radioButton_Chams_Basic.Checked = true;
-                    break;
-                case ChamsManager.ChamsMode.VisCheckGlow:
-                    radioButton_Chams_Vischeck.Checked = true;
-                    break;
-                case ChamsManager.ChamsMode.Visible:
-                    radioButton_Chams_Visible.Checked = true;
-                    break;
-            }
-        }
-
-        /// <summary>
-        /// Toggles the currently selected Aimbot Bone.
-        /// </summary>
-        private void ToggleAimbotBone()
-        {
-            var maxIndex = comboBox_AimbotTarget.Items.Count - 1;
-            var newIndex = comboBox_AimbotTarget.SelectedIndex + 1;
-            if (newIndex > maxIndex)
-                comboBox_AimbotTarget.SelectedIndex = 0;
-            else
-                comboBox_AimbotTarget.SelectedIndex = newIndex;
-        }
-
-        /// <summary>
-        /// Toggles the currently selected Aimbot Mode.
-        /// </summary>
-        private void ToggleAimbotMode()
-        {
-            if (radioButton_AimTarget_FOV.Checked)
-                radioButton_AimTarget_CQB.Checked = true;
-            else if (radioButton_AimTarget_CQB.Checked)
-                radioButton_AimTarget_FOV.Checked = true;
-        }
-
         /// <summary>
         /// Set status text in top center of screen.
         /// </summary>
@@ -673,24 +583,7 @@ namespace arena_dma_radar.UI.Radar
             try
             {
                 var aimEnabled = checkBox_AimBotEnabled.Enabled && checkBox_AimBotEnabled.Checked;
-                string label;
-                if (aimEnabled)
-                {
-                    var mode = Aimbot.Config.TargetingMode;
-                    if (Aimbot.Config.RandomBone.Enabled)
-                        label = $"{mode.GetDescription()}: Random Bone";
-                    else if (Aimbot.Config.SilentAim.AutoBone)
-                        label = $"{mode.GetDescription()}: Auto Bone";
-                    else
-                    {
-                        var bone = (BonesListItem)comboBox_AimbotTarget.SelectedItem;
-                        label = $"{mode.GetDescription()}: {bone!.Name}";
-                    }
-                }
-                else if (MemWriteFeature<NoRecoil>.Instance.Enabled)
-                    label = "No Recoil";
-                else
-                    return;
+                string label = "";
                 var clientArea = skglControl_Radar.ClientRectangle;
                 var spacing = 1f * UIScale;
                 canvas.DrawStatusText(clientArea, SKPaints.TextStatusSmall, spacing, label);
@@ -704,79 +597,11 @@ namespace arena_dma_radar.UI.Radar
         #endregion
 
         #region Events
-        private void textBox_VischeckVisColor_TextChanged(object sender, EventArgs e)
-        {
-            Chams.Config.VisibleColor = textBox_VischeckVisColor.Text;
-        }
-
-        private void textBox_VischeckInvisColor_TextChanged(object sender, EventArgs e)
-        {
-            Chams.Config.InvisibleColor = textBox_VischeckInvisColor.Text;
-        }
-
-        private void button_VischeckVisColorPick_Click(object sender, EventArgs e)
-        {
-            if (colorDialog1.ShowDialog() is DialogResult.OK)
-            {
-                textBox_VischeckVisColor.Text = colorDialog1.Color.ToSKColor().ToString();
-            }
-        }
-
-        private void button_VischeckInvisColorPick_Click(object sender, EventArgs e)
-        {
-            if (colorDialog1.ShowDialog() is DialogResult.OK)
-            {
-                textBox_VischeckInvisColor.Text = colorDialog1.Color.ToSKColor().ToString();
-            }
-        }
-        private void checkBox_AdvancedMemWrites_CheckedChanged(object sender, EventArgs e)
-        {
-            bool enabled = checkBox_AdvancedMemWrites.Checked;
-            ToggleAdvMemwriteFeatures(enabled);
-            if (enabled) // Enable Memory Writing
-            {
-                var dlg = MessageBox.Show(
-                    "Are you sure you want to enable Advanced Memory Writing? This uses a riskier injection technique than regular Mem Write Features.",
-                    "Enable Advanced Mem Writes?",
-                    MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (dlg is DialogResult.Yes)
-                {
-                    MemWrites.Config.AdvancedMemWrites = enabled;
-                }
-                else
-                    checkBox_AdvancedMemWrites.Checked = false;
-            }
-            else // Disable Memory Writing
-            {
-                MemWrites.Config.AdvancedMemWrites = false;
-            }
-        }
-
-        private void ToggleAdvMemwriteFeatures(bool enabled)
-        {
-            radioButton_Chams_Vischeck.Enabled = enabled;
-            radioButton_Chams_Visible.Enabled = enabled;
-        }
         private void checkBox_ESP_FireportAim_CheckedChanged(object sender, EventArgs e)
         {
             Config.ESP.ShowFireportAim = checkBox_ESP_FireportAim.Checked;
         }
 
-        private void checkBox_AimRandomBone_CheckedChanged(object sender, EventArgs e)
-        {
-            bool enabled = checkBox_AimRandomBone.Checked;
-            Aimbot.Config.RandomBone.Enabled = enabled;
-            button_RandomBoneCfg.Enabled = enabled;
-            comboBox_AimbotTarget.Enabled = !enabled;
-        }
-
-        private void button_RandomBoneCfg_Click(object sender, EventArgs e)
-        {
-            using var form = new AimbotRandomBoneForm();
-            var dlg = form.ShowDialog();
-            if (!Aimbot.Config.RandomBone.Is100Percent)
-                Aimbot.Config.RandomBone.ResetDefaults();
-        }
         /// <summary>
         /// Handles mouse clicks on the Map Canvas.
         /// </summary>
@@ -786,15 +611,6 @@ namespace arena_dma_radar.UI.Radar
                 _mouseOverItem is Player player &&
                 player.IsHumanActive)
                 player.ToggleFocus();
-        }
-        private void checkBox_SA_AutoBone_CheckedChanged(object sender, EventArgs e)
-        {
-            Aimbot.Config.SilentAim.AutoBone = checkBox_SA_AutoBone.Checked;
-        }
-
-        private void checkBox_SA_SafeLock_CheckedChanged(object sender, EventArgs e)
-        {
-            Aimbot.Config.SilentAim.SafeLock = checkBox_SA_SafeLock.Checked;
         }
         private void TrackBar_AimlineLength_ValueChanged(object sender, EventArgs e)
         {
@@ -814,92 +630,6 @@ namespace arena_dma_radar.UI.Radar
         private void checkBox_Aimview_CheckedChanged(object sender, EventArgs e)
         {
             Config.ShowESPWidget = checkBox_Aimview.Checked;
-        }
-
-        private void checkBox_EnableMemWrite_CheckedChanged(object sender, EventArgs e)
-        {
-            bool enabled = checkBox_EnableMemWrite.Checked;
-            if (enabled) // Enable Memory Writing
-            {
-                var dlg = MessageBox.Show(
-                    "Are you sure you want to enable Memory Writing? This is riskier than using Read-Only radar features.",
-                    "Enable Mem Writes?",
-                    MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (dlg is DialogResult.Yes)
-                {
-                    MemWrites.Enabled = enabled;
-                    flowLayoutPanel_MemWrites.Enabled = enabled;
-                }
-                else
-                    checkBox_EnableMemWrite.Checked = false;
-            }
-            else // Disable Memory Writing
-            {
-                MemWrites.Enabled = false;
-                flowLayoutPanel_MemWrites.Enabled = false;
-            }
-        }
-
-        private void checkBox_Chams_CheckedChanged(object sender, EventArgs e)
-        {
-            var enabled = checkBox_Chams.Checked;
-            flowLayoutPanel_Chams.Enabled = enabled;
-            MemWriteFeature<Chams>.Instance.Enabled = enabled;
-            Chams.Config.Enabled = enabled;
-        }
-
-        private void radioButton_Chams_Basic_CheckedChanged(object sender, EventArgs e)
-        {
-            var enabled = radioButton_Chams_Basic.Checked;
-            if (enabled)
-                Chams.Config.Mode = ChamsManager.ChamsMode.Basic;
-        }
-
-        private void radioButton_Chams_Vischeck_CheckedChanged(object sender, EventArgs e)
-        {
-            var enabled = radioButton_Chams_Vischeck.Checked;
-            if (enabled)
-                Chams.Config.Mode = ChamsManager.ChamsMode.VisCheckGlow;
-            flowLayoutPanel_Vischeck.Enabled = enabled;
-        }
-
-        private void radioButton_Chams_Visible_CheckedChanged(object sender, EventArgs e)
-        {
-            var enabled = radioButton_Chams_Visible.Checked;
-            if (enabled)
-                Chams.Config.Mode = ChamsManager.ChamsMode.Visible;
-            flowLayoutPanel_Vischeck.Enabled = enabled;
-        }
-
-        private void checkBox_NoRecoilSway_CheckedChanged(object sender, EventArgs e)
-        {
-            var enabled = checkBox_NoRecoilSway.Checked;
-            flowLayoutPanel_NoRecoil.Enabled = enabled;
-            MemWriteFeature<NoRecoil>.Instance.Enabled = enabled;
-        }
-
-        private void TrackBar_NoSway_ValueChanged(object sender, EventArgs e)
-        {
-            var value = trackBar_NoSway.Value;
-            label_Sway.Text = $"Sway {value}";
-            MemWrites.Config.NoSwayAmount = value;
-        }
-
-        private void TrackBar_NoRecoil_ValueChanged(object sender, EventArgs e)
-        {
-            var value = trackBar_NoRecoil.Value;
-            label_Recoil.Text = $"Recoil {value}";
-            MemWrites.Config.NoRecoilAmount = value;
-        }
-
-        private void checkBox_NoVisor_CheckedChanged(object sender, EventArgs e)
-        {
-            MemWriteFeature<NoVisor>.Instance.Enabled = checkBox_NoVisor.Checked;
-        }
-
-        private void checkBox_NoWepMalf_CheckedChanged(object sender, EventArgs e)
-        {
-            MemPatchFeature<NoWepMalfPatch>.Instance.Enabled = checkBox_NoWepMalf.Checked;
         }
 
         private void textBox_ResWidth_TextChanged(object sender, EventArgs e)
@@ -1274,50 +1004,9 @@ namespace arena_dma_radar.UI.Radar
             }
         }
 
-        private void checkBox_AimBotEnabled_CheckedChanged(object sender, EventArgs e)
-        {
-            var enabled = checkBox_AimBotEnabled.Checked;
-            Aimbot.Config.Enabled = enabled;
-            flowLayoutPanel_Aimbot.Enabled = enabled;
-        }
-
-        private void comboBox_AimbotTarget_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (comboBox_AimbotTarget.SelectedItem is not null &&
-                comboBox_AimbotTarget.SelectedItem is BonesListItem entry)
-            {
-                var bone = entry.Bone;
-                Aimbot.Config.Bone = bone;
-            }
-        }
-
-        private void radioButton_AimTarget_FOV_CheckedChanged(object sender, EventArgs e)
-        {
-            if (radioButton_AimTarget_FOV.Checked)
-                Aimbot.Config.TargetingMode = Aimbot.AimbotTargetingMode.FOV;
-        }
-
-        private void radioButton_AimTarget_CQB_CheckedChanged(object sender, EventArgs e)
-        {
-            if (radioButton_AimTarget_CQB.Checked)
-                Aimbot.Config.TargetingMode = Aimbot.AimbotTargetingMode.CQB;
-        }
-
-        private void TrackBar_AimFOV_ValueChanged(object sender, EventArgs e)
-        {
-            float fov = trackBar_AimFOV.Value; // Cache value
-            Aimbot.Config.FOV = fov; // Set Global
-            label_AimFOV.Text = $"FOV {(int)fov}";
-        }
-
         private void checkBox_ESP_AimFov_CheckedChanged(object sender, EventArgs e)
         {
             Config.ESP.ShowAimFOV = checkBox_ESP_AimFov.Checked;
-        }
-
-        private void checkBox_ESP_AimLock_CheckedChanged(object sender, EventArgs e)
-        {
-            Config.ESP.ShowAimLock = checkBox_ESP_AimLock.Checked;
         }
 
         #endregion
@@ -1452,65 +1141,12 @@ namespace arena_dma_radar.UI.Radar
             toggleEspWidget.HotkeyStateChanged += ToggleAimview_HotkeyStateChanged;
             var toggleFuserEsp = new HotkeyActionController("Toggle Fuser ESP");
             toggleFuserEsp.HotkeyStateChanged += ToggleEsp_HotkeyStateChanged;
-            var engageAimbot = new HotkeyActionController("Engage Aimbot");
-            engageAimbot.HotkeyStateChanged += EngageAimbot_HotkeyStateChanged;
-            var toggleAimbotBone = new HotkeyActionController("Toggle Aimbot Bone");
-            toggleAimbotBone.HotkeyStateChanged += ToggleAimbotBone_HotkeyStateChanged;
-            var toggleAimbotMode = new HotkeyActionController("Toggle Aimbot Mode");
-            toggleAimbotMode.HotkeyStateChanged += ToggleAimbotMode_HotkeyStateChanged;
-            var toggleAutoBone = new HotkeyActionController("Toggle Auto Bone (Silent Aim)");
-            toggleAutoBone.HotkeyStateChanged += ToggleAutoBone_HotkeyStateChanged;
-            var toggleRandomBone = new HotkeyActionController("Toggle Random Bone (Aimbot)");
-            toggleRandomBone.HotkeyStateChanged += ToggleRandomBone_HotkeyStateChanged;
-            var toggleSafeLock = new HotkeyActionController("Toggle Safe Lock (Silent Aim)");
-            toggleSafeLock.HotkeyStateChanged += ToggleSafeLock_HotkeyStateChanged;
             // Add to Static Collection:
             HotkeyManager.RegisterActionController(zoomIn);
             HotkeyManager.RegisterActionController(zoomOut);
             HotkeyManager.RegisterActionController(toggleNames);
             HotkeyManager.RegisterActionController(toggleEspWidget);
             HotkeyManager.RegisterActionController(toggleFuserEsp);
-            HotkeyManager.RegisterActionController(engageAimbot);
-            HotkeyManager.RegisterActionController(toggleAimbotBone);
-            HotkeyManager.RegisterActionController(toggleAimbotMode);
-            HotkeyManager.RegisterActionController(toggleAutoBone);
-            HotkeyManager.RegisterActionController(toggleRandomBone);
-            HotkeyManager.RegisterActionController(toggleSafeLock);
-        }
-
-        private void ToggleSafeLock_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State)
-                checkBox_SA_SafeLock.Checked = !checkBox_SA_SafeLock.Checked;
-        }
-
-        private void ToggleRandomBone_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State && flowLayoutPanel_Aimbot.Enabled)
-                checkBox_AimRandomBone.Checked = !checkBox_AimRandomBone.Checked;
-        }
-
-        private void ToggleAutoBone_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State)
-                checkBox_SA_AutoBone.Checked = !checkBox_SA_AutoBone.Checked;
-        }
-
-        private void ToggleAimbotMode_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State && checkBox_AimBotEnabled.Checked)
-                ToggleAimbotMode();
-        }
-
-        private void ToggleAimbotBone_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            if (e.State && comboBox_AimbotTarget.Enabled)
-                ToggleAimbotBone();
-        }
-
-        private void EngageAimbot_HotkeyStateChanged(object sender, HotkeyEventArgs e)
-        {
-            Aimbot.Engaged = e.State;
         }
 
         private void ToggleNames_HotkeyStateChanged(object sender, HotkeyEventArgs e)
