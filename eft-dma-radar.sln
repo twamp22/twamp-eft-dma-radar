@@ -5,8 +5,6 @@ VisualStudioVersion = 17.0.31912.275
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eft-dma-shared", "eft-dma-shared\eft-dma-shared.csproj", "{6D8F90BD-7B14-420E-4422-9F1B0E716CC7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eft-dma-radar", "eft-dma-radar\eft-dma-radar.csproj", "{7F6D99FB-CD79-68B0-78DE-FDEB5E23FA1E}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "arena-dma-radar", "arena-dma-radar\arena-dma-radar.csproj", "{95F68917-F531-DF0E-E10F-128BA0B85C6F}"
 EndProject
 Global
