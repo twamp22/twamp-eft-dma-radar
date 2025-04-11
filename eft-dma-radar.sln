@@ -7,8 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eft-dma-shared", "eft-dma-s
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "eft-dma-radar", "eft-dma-radar\eft-dma-radar.csproj", "{7F6D99FB-CD79-68B0-78DE-FDEB5E23FA1E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "arena-dma-radar", "arena-dma-radar\arena-dma-radar.csproj", "{95F68917-F531-DF0E-E10F-128BA0B85C6F}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Commercial|x64 = Commercial|x64
