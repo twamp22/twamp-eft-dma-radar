@@ -314,15 +314,26 @@ namespace SDK
             public const uint InventoryController = 0x118; // -.\uECCC
         }
 
-        public readonly partial struct ObservedMovementController
-        {
-            public const uint Rotation = 0x88; // UnityEngine.Vector2
-            public const uint Velocity = 0x10C; // UnityEngine.Vector3
-        }
-
         public readonly partial struct ObservedHandsController
         {
             public const uint ItemInHands = 0x58; // EFT.InventoryLogic.Item
+			public const uint BundleAnimationBones = 0xA0; // -.\uECB3
+		}
+
+		public readonly partial struct BundleAnimationBonesController
+		{
+			public const uint ProceduralWeaponAnimation = 0xB8; // EFT.Animations.ProceduralWeaponAnimation
+		}
+
+		public readonly partial struct ProceduralWeaponAnimationController
+		{
+			public const uint IsAiming = 0x1C5; // Boolean
+		}
+
+		public readonly partial struct ObservedMovementController
+		{
+			public const uint Rotation = 0x88; // UnityEngine.Vector2
+			public const uint Velocity = 0x10C; // UnityEngine.Vector3
         }
 
         public readonly partial struct ObservedHealthController
@@ -418,6 +429,17 @@ namespace SDK
         {
             public const uint IntensitySeparateFactors = 0x94; // UnityEngine.Vector3
         }
+
+		public readonly partial struct ThermalVision
+		{
+			public const uint Material = 0x98; // UnityEngine.Material
+			public const uint On = 0xE8; // Boolean
+		}
+
+		public readonly partial struct NightVision
+		{
+			public const uint _on = 0xF4; // Boolean
+		}
 
         public readonly partial struct VisorEffect
         {

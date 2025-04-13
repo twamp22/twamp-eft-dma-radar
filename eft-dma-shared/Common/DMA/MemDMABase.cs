@@ -8,6 +8,8 @@ using eft_dma_shared.Common.Misc;
 using eft_dma_shared.Common.DMA.ScatterAPI;
 using eft_dma_shared.Common.Misc.Commercial;
 using eft_dma_shared.Common.Unity.LowLevel.Hooks;
+using eft_dma_shared.Common.Unity;
+using Microsoft.Extensions.Logging;
 
 namespace eft_dma_shared.Common.DMA
 {
@@ -600,6 +602,55 @@ namespace eft_dma_shared.Common.DMA
             return nullIndex >= 0
                 ? Encoding.Unicode.GetString(buffer.Slice(0, nullIndex))
                 : Encoding.Unicode.GetString(buffer);
+        }
+
+        public static ulong GetObjectComponent(ulong objectPtr, string className)
+        {
+            // component list
+            var components = Memory.ReadPtr(objectPtr + 0x30);
+            // might need de/increase depending on parent class
+            for (uint i = 0; i < 0x1000; i++)
+            {
+                try
+                {
+                    // returning field if name matches
+                    var field = Memory.ReadPtrChain(components, new uint[] { 0x8 + (i * 0x10), 0x28 });
+                    // get object's classname
+                    var namePtr = Memory.ReadPtrChain(field, new uint[] { 0x0, 0x0, 0x48 });
+                    // actual class name
+                    var name = Memory.ReadString(namePtr, 128);
+                    // compare to arg passed
+                    if (name.Equals(className, StringComparison.OrdinalIgnoreCase))
+                        return field;
+                }
+                catch { }
+            }
+            throw new Exception("");
+        }
+
+        public static ulong GetCameraByName(string name, bool deref = true)
+        {
+            var temp = Memory.ReadPtrChain(Memory.UnityBase + UnityOffsets.ModuleBase.AllCameras, [0x0, 0x0]);
+
+            for (uint i = 0; i < 400; i++)
+            {
+                try
+                {
+                    var cameraComponent = Memory.ReadPtr(temp + (i * 0x8));
+                    var cameraGameObj = Memory.ReadPtr(cameraComponent + 0x30);
+                    var cameraNamePtr = Memory.ReadPtr(cameraGameObj + 0x60);
+
+                    var cameraName = Memory.ReadString(cameraNamePtr, 128);
+                    if (cameraName.Equals(name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (deref) return cameraGameObj;
+                        else return cameraComponent;
+                    }
+                }
+                catch { }
+            }
+
+            throw new Exception("");
         }
 
         #endregion

@@ -20,6 +20,12 @@ namespace eft_dma_radar.Tarkov.GameWorld
         /// Optic Camera (ads/scoped).
         /// </summary>
         public override ulong OpticCamera { get; }
+        /// <summary>
+        /// ThermalVision
+        /// </summary>
+        public static ulong ThermalVision;
+        public static ulong NightVision;
+        public static ulong FPSCamera_;
 
         public CameraManager() : base()
         {
@@ -85,6 +91,54 @@ namespace eft_dma_radar.Tarkov.GameWorld
                 LoneLogging.WriteLine($"CheckIfScoped() ERROR: {ex}");
                 return false;
             }
+        }
+
+        public static ulong GetFPSCamera(bool cached = true, bool deref = true)
+        {
+            try
+            {
+                if (FPSCamera_ == 0 || !cached)
+                {
+                    if (deref) FPSCamera_ = MemDMA.GetCameraByName("FPS Camera");
+                    else return MemDMA.GetCameraByName("FPS Camera", deref);
+                }
+                return FPSCamera_;
+            }
+            catch(Exception ex)
+            {
+                FPSCamera_ = 0;
+            }
+            return 0;
+        }
+
+        public static ulong GetThermalVision(bool cached = true)
+        {
+            try
+            {
+                if(ThermalVision == 0 || !cached)
+                    ThermalVision = MemDMA.GetObjectComponent(GetFPSCamera(cached), "ThermalVision");
+                return ThermalVision;
+            }
+            catch(Exception ex)
+            {
+                ThermalVision = 0;
+            }
+            return 0;
+        }
+
+        public static ulong GetNightVision(bool cached = true)
+        {
+            try
+            {
+                if (NightVision == 0 || !cached)
+                    NightVision = MemDMA.GetObjectComponent(GetFPSCamera(cached), "NightVision");
+                return NightVision;
+            }
+            catch(Exception ex)
+            {
+                NightVision = 0;
+            }
+            return 0;
         }
 
         /// <summary>

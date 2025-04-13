@@ -20,43 +20,43 @@ namespace eft_dma_radar.Tarkov.GameWorld.Exits
         }
 
         /// <summary>
-/// Initialize ExfilManager.
-/// </summary>
-private void Init()
-{
-    var list = new List<IExitPoint>();
-    /// Exfils
-    var exfilController = Memory.ReadPtr(_localGameWorld + Offsets.ClientLocalGameWorld.ExfilController, false);
-    var listOffset = _isPMC ?
-        Offsets.ExfilController.ExfiltrationPointArray : Offsets.ExfilController.ScavExfiltrationPointArray;
-    var exfilPoints = Memory.ReadPtr(exfilController + listOffset, false);
-    using var exfils = MemArray<ulong>.Get(exfilPoints, false);
-    ArgumentOutOfRangeException.ThrowIfZero(exfils.Count, nameof(exfils));
-    foreach (var exfilAddr in exfils)
-    {
-        var exfil = new Exfil(exfilAddr, _isPMC);
-        list.Add(exfil);
-    }
-    /// Secret Extracts
-    var secretExfil = Memory.ReadPtr(exfilController + Offsets.ExfilController.SecretExfiltrationPointArray);
-    using var secrets = MemArray<ulong>.Get(secretExfil, false);
-    foreach (var secretAddr in secrets)
-    {
-        var exfil = new Exfil(secretAddr, true);
-        list.Add(exfil);
-    }
-    /// Transits
-    var transitController = Memory.ReadPtr(_localGameWorld + Offsets.ClientLocalGameWorld.TransitController, false);
-    var transitsPtr = Memory.ReadPtr(transitController + Offsets.TransitController.TransitPoints, false);
-    using var transits = MemDictionary<ulong, ulong>.Get(transitsPtr, false);
-    foreach (var dTransit in transits)
-    {
-        var transit = new TransitPoint(dTransit.Value);
-        list.Add(transit);
-    }
+	/// Initialize ExfilManager.
+	/// </summary>
+	private void Init()
+	{
+	    var list = new List<IExitPoint>();
+	    /// Exfils
+	    var exfilController = Memory.ReadPtr(_localGameWorld + Offsets.ClientLocalGameWorld.ExfilController, false);
+	    var listOffset = _isPMC ?
+	        Offsets.ExfilController.ExfiltrationPointArray : Offsets.ExfilController.ScavExfiltrationPointArray;
+	    var exfilPoints = Memory.ReadPtr(exfilController + listOffset, false);
+	    using var exfils = MemArray<ulong>.Get(exfilPoints, false);
+	    ArgumentOutOfRangeException.ThrowIfZero(exfils.Count, nameof(exfils));
+	    foreach (var exfilAddr in exfils)
+	    {
+	        var exfil = new Exfil(exfilAddr, _isPMC);
+	        list.Add(exfil);
+	    }
+	    /// Secret Extracts
+	    var secretExfil = Memory.ReadPtr(exfilController + Offsets.ExfilController.SecretExfiltrationPointArray);
+	    using var secrets = MemArray<ulong>.Get(secretExfil, false);
+	    foreach (var secretAddr in secrets)
+	    {
+	        var exfil = new Exfil(secretAddr, true);
+	        list.Add(exfil);
+	    }
+	    /// Transits
+	    var transitController = Memory.ReadPtr(_localGameWorld + Offsets.ClientLocalGameWorld.TransitController, false);
+	    var transitsPtr = Memory.ReadPtr(transitController + Offsets.TransitController.TransitPoints, false);
+	    using var transits = MemDictionary<ulong, ulong>.Get(transitsPtr, false);
+	    foreach (var dTransit in transits)
+	    {
+	        var transit = new TransitPoint(dTransit.Value);
+	        list.Add(transit);
+	    }
 
-    _exits = list; // update readonly ref
-}
+	    _exits = list; // update readonly ref
+	}
 
         /// <summary>
         /// Updates exfil statuses.

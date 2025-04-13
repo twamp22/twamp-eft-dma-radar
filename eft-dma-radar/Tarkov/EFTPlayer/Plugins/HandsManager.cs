@@ -43,6 +43,7 @@ namespace eft_dma_radar.Tarkov.EFTPlayer.Plugins
             try
             {
                 var handsController = Memory.ReadPtr(_parent.HandsControllerAddr); // or FirearmController
+                var handCtrlPtr = Memory.ReadPtr(_parent.HandsControllerAddr);
                 var itemBase = Memory.ReadPtr(handsController +
                     (_parent is ClientPlayer ?
                     Offsets.ItemHandsController.Item : Offsets.ObservedHandsController.ItemInHands));
@@ -63,7 +64,10 @@ namespace eft_dma_radar.Tarkov.EFTPlayer.Plugins
                                 x.ID.Equals("5a1eaa87fcdbcb001865f75e", StringComparison.OrdinalIgnoreCase) || // REAP-IR
                                 x.ID.Equals("5d1b5e94d7ad1a2b865a96b0", StringComparison.OrdinalIgnoreCase) || // FLIR
                                 x.ID.Equals("6478641c19d732620e045e17", StringComparison.OrdinalIgnoreCase) || // ECHO
-                                x.ID.Equals("63fc44e2429a8a166c7f61e6", StringComparison.OrdinalIgnoreCase))   // ZEUS
+                                x.ID.Equals("63fc44e2429a8a166c7f61e6", StringComparison.OrdinalIgnoreCase) || // ZEUS
+                                x.ID.Equals("67641b461c2eb66ade05dba6", StringComparison.OrdinalIgnoreCase) || // SHAKIN
+                                x.ID.Equals("609bab8b455afd752b2e6138", StringComparison.OrdinalIgnoreCase) || // REFLEX
+                                x.ID.Equals("606f2696f2cb2e02a42aceb1", StringComparison.OrdinalIgnoreCase))   // ULTIMA
                                 ?? false;
                             _thermal = hasThermal ?
                                 "Thermal" : null;

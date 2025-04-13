@@ -88,11 +88,6 @@ namespace eft_dma_shared.Common.Misc.Data
                 ["Adm Basement"] = "Admin Basement",
                 ["Smuggler's Path (Co-op)"] = "Smuggler's Path (Co-op)",
             }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase) },
-            { "Labyrinth", new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["labir_exit"] = "The Way Up",
-                ["labyrinth_secret_tagilla_key"] = " Aridane's Path",
-            }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase) },
             { "rezervbase", new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 // PMC
@@ -111,6 +106,11 @@ namespace eft_dma_shared.Common.Misc.Data
                 ["Exit3"] = "??",
                 ["Exit4"] = "Checkpoint Fence",
                 ["Armored Train"] = "Armored Train",
+            }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase) },
+            { "Labyrinth", new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["labir_exit"] = "The Way Up",
+                ["labyrinth_secret_tagilla_key"] = " Aridane's Path",
             }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase) },
             { "laboratory", new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
@@ -146,6 +146,7 @@ namespace eft_dma_shared.Common.Misc.Data
                 ["Gate 3"] = "Gate 3",
                 ["Gate 0"] = "Gate 0",
                 ["Gate m"] = "Med Tent Gate",
+                ["Gate_o"] = "Courtyard Gate",
                 // SCAV
                 ["Camera Bunker Door"] = "Camera Bunker Door",
                 ["Office Window"] = "Office Window",
@@ -157,6 +158,7 @@ namespace eft_dma_shared.Common.Misc.Data
                 ["Gate 3"] = "Gate 3",
                 ["Gate 0"] = "Gate 0",
                 ["Gate m"] = "Med Tent Gate",
+                ["Gate_o"] = "Courtyard Gate",
                 // SCAV
                 ["Camera Bunker Door"] = "Camera Bunker Door",
                 ["Office Window"] = "Office Window",
@@ -173,6 +175,10 @@ namespace eft_dma_shared.Common.Misc.Data
                 ["RUAF Roadblock"] = "RUAF Roadblock",
                 ["Smuggler's Boat"] = "Smuggler's Boat",
                 ["ZB-1012"] = "ZB-1012",
+                ["customs_secret_voron_boat"] = "(Secret) Smugglers' Boat",
+                ["customs_secret_voron_bunker"] = "(Secret) Smugglers' Bunker (ZB-1012)",
+                ["Customs_scav_pmc"] = "Boiler Room Basement (Co-op)",
+                ["customs_sniper_exit"] = "Railroad Passage (Flare)",
                 // SCAV
                 ["Shack"] = "Military Base CP",
                 ["Beyond Fuel Tank"] = "Passage Between Rocks",
@@ -190,6 +196,7 @@ namespace eft_dma_shared.Common.Misc.Data
                 ["Factory Far Corner"] = "Factory Far Corner",
                 ["Administration Gate"] = "Administration Gate",
                 ["Military Checkpoint"] = "Scav Checkpoint",
+                ["Customs_scav_pmc"] = "Boiler Room Basement (Co-op)",
             }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase) },
             { "lighthouse", new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
@@ -232,6 +239,7 @@ namespace eft_dma_shared.Common.Misc.Data
                 ["scav_e5"] = "Near Kamchatskaya Arch",
                 ["scav_e7"] = "Cardinal Apartment Complex Parking",
                 ["scav_e8"] = "Klimov Shopping Mall Exfil",
+                ["scav_e6"] = "Pinewood Basement (Co-Op)",
             }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase) },
             { "Sandbox", new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {

@@ -2,6 +2,7 @@
 using eft_dma_radar.Tarkov.EFTPlayer.Plugins;
 using eft_dma_radar.Tarkov.Features.MemoryWrites.Patches;
 using eft_dma_radar.UI.ESP;
+using eft_dma_radar.UI.Misc;
 using eft_dma_shared.Common.DMA.ScatterAPI;
 using eft_dma_shared.Common.Features;
 using eft_dma_shared.Common.Misc.Commercial;
@@ -31,6 +32,19 @@ namespace eft_dma_radar.Tarkov.EFTPlayer
         /// </summary>
         public override string Name { get; set; }
         /// <summary>
+        /// Player prestige level.
+        /// </summary>
+        /// 
+        public override int Prestige { get; set; }
+        /// <summary>
+        /// Player hours.
+        /// </summary>
+        public override int Hours { get; set; }
+        /// <summary>
+        /// Player level.
+        /// </summary>
+        public override int Level { get; set; }
+        /// <summary>
         /// Account UUID for Human Controlled Players.
         /// </summary>
         public override string AccountID { get; }
@@ -46,6 +60,10 @@ namespace eft_dma_radar.Tarkov.EFTPlayer
         /// Player is Human-Controlled.
         /// </summary>
         public override bool IsHuman { get; }
+        /// <summary>
+        /// Player is Aiming Down Sights.
+        /// </summary>
+        public override bool IsAiming { get; set; } = false;
         /// <summary>
         /// MovementContext / StateContext
         /// </summary>
@@ -128,7 +146,36 @@ namespace eft_dma_radar.Tarkov.EFTPlayer
                         var role = Player.GetAIRoleInfo(voice);
                         Name = role.Name;
                         Type = role.Type;
+                        switch (Name)
+                        {
+                            case "Priest":
+                                GearManager newGear = new GearManager(this);
+                                if (newGear.Equipment.TryGetValue("FaceCover", out var face))
+                                {
+                                    if (face.Short.ToLower() == "zryachiy")
+                                    {
+                                        Name = "Zryachiy";
                     }
+                                }
+                                break;
+                            case "Usec":
+                            case "Bear":
+                                if (Memory.MapID.ToLower() == "lighthouse")
+                                {
+                                    Name = "Rouge";
+                                    Type = PlayerType.AIRaider;
+                                }
+                                else if (Memory.MapID.ToLower() == "laboratory" || Memory.MapID.ToLower() == "rezervbase")
+                                {
+                                    Name = "Raider";
+                                    Type = PlayerType.AIRaider;
+                    }
+                                break;
+                        }
+                    }
+                    
+
+
                 }
                 else
                 {
@@ -211,10 +258,61 @@ namespace eft_dma_radar.Tarkov.EFTPlayer
                 {
                     UpdateMemberCategory();
                     UpdatePlayerName();
+                    UpdatePlayerPrestige();
+                    UpdatePlayerLevel();
+                    UpdatePlayerHours();
                 }
                 UpdateHealthStatus();
             }
             base.OnRegRefresh(index, registered, isActive);
+        }
+
+        private void UpdatePlayerPrestige()
+        {
+            try
+            {
+                int prestige = Profile.Prestige;
+                if (prestige is not -1 && this.Prestige != prestige)
+                {
+                    this.Prestige = prestige;
+                }
+            }
+            catch (Exception ex)
+            {
+                LoneLogging.WriteLine($"ERROR updating Prestige for Player '{Name}': {ex}");
+            }
+        }
+
+        private void UpdatePlayerHours()
+        {
+            try
+            {
+                int? hours = Profile.Hours;
+                if(hours is not -1 && this.Hours != hours)
+                {
+                    this.Hours = (int)hours;
+                }
+            }
+            catch (Exception ex)
+            {
+                LoneLogging.WriteLine($"ERROR updating Hours for Player '{Name}': {ex}");
+            }
+        }
+
+        private void UpdatePlayerLevel()
+        {
+            try
+            {
+                int? level = Profile.Level;
+                if(level is not null && this.Level != level)
+                {
+                    this.Level = (int)level.Value;
+                }
+            }
+            catch (Exception ex)
+            {
+                LoneLogging.WriteLine($"ERROR updating Level for Player '{Name}': {ex}");
+            }
         }
 
         private void UpdatePlayerName()
