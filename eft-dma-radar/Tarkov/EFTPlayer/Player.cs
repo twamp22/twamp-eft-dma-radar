@@ -19,6 +19,7 @@ using eft_dma_shared.Common.Misc.Data;
 using eft_dma_shared.Common.Misc.Commercial;
 using eft_dma_shared.Common.Misc.Pools;
 using eft_dma_shared.Common.DMA;
+using static SDK.Offsets;
 
 namespace eft_dma_radar.Tarkov.EFTPlayer
 {
@@ -154,6 +155,8 @@ namespace eft_dma_radar.Tarkov.EFTPlayer
         /// </summary>
         public ulong Base { get; }
 
+        private Config Config { get; set; } = Program.Config;
+
         /// <summary>
         /// True if the Player is Active (in the player list).
         /// </summary>
@@ -209,7 +212,7 @@ namespace eft_dma_radar.Tarkov.EFTPlayer
         /// Player's Skeleton Bones.
         /// Derived types MUST define this.
         /// </summary>
-        public virtual Skeleton Skeleton => throw new NotImplementedException(nameof(Skeleton));
+        public virtual eft_dma_shared.Common.Players.Skeleton Skeleton => throw new NotImplementedException(nameof(Skeleton));
 
         /// <summary>
         /// Duration of consecutive errors.
@@ -254,6 +257,12 @@ namespace eft_dma_radar.Tarkov.EFTPlayer
         /// Player name.
         /// </summary>
         public virtual string Name { get; set; }
+
+        public virtual int Prestige { get; set; }
+
+        public virtual int Level { get; set; }
+
+        public virtual int Hours { get; set; }
         public PlayerProfile Profile { get; private set; }    
         public float KD => Profile.Overall_KD ?? 0f;
         public int TotalHoursPlayed => Profile.Hours ?? 0;
@@ -276,6 +285,11 @@ namespace eft_dma_radar.Tarkov.EFTPlayer
         /// Player is Human-Controlled.
         /// </summary>
         public virtual bool IsHuman { get; }
+
+        /// <summary>
+        /// Player is Aiming Down Sights.
+        /// </summary>
+        public virtual bool IsAiming { get; set; } = false;
 
         /// <summary>
         /// MovementContext / StateContext
@@ -667,6 +681,12 @@ namespace eft_dma_radar.Tarkov.EFTPlayer
         {
             switch (voiceLine)
             {
+                case "BossAgroTagilla":
+                    return new AIRole()
+                    {
+                        Name = "Shadow of Tagilla",
+                        Type = PlayerType.AIBoss
+                    };
                 case "BossSanitar":
                     return new AIRole()
                     {
@@ -1195,13 +1215,13 @@ namespace eft_dma_radar.Tarkov.EFTPlayer
                 case Enums.WildSpawnType.bossTagillaAgro:
                     return new AIRole()
                     {
-                        Name = "bossTagillaAgro",
+                        Name = "Shadow of Tagilla",
                         Type = PlayerType.AIBoss
                     };
                 case Enums.WildSpawnType.bossKillaAgro:
                     return new AIRole()
                     {
-                        Name = "bossKillaAgro",
+                        Name = "Vengeful Killa",
                         Type = PlayerType.AIBoss
                     };
                 case Enums.WildSpawnType.tagillaHelperAgro:
@@ -1509,6 +1529,15 @@ namespace eft_dma_radar.Tarkov.EFTPlayer
             }
         }
 
+        /// <summary>
+        ///  Draws Player Height on this location
+        /// </summary>
+        public void DrawPlayerHeight(SKCanvas canvas, SKPoint point, Player player)
+        {
+            var paints = GetPaints();
+
+        }
+
         private ValueTuple<SKPaint, SKPaint> GetPaints()
         {
             if (IsAimbotLocked)
@@ -1620,7 +1649,8 @@ namespace eft_dma_radar.Tarkov.EFTPlayer
             var showInfo = IsAI ? ESP.Config.AIRendering.ShowLabels : ESP.Config.PlayerRendering.ShowLabels;
             var showDist = IsAI ? ESP.Config.AIRendering.ShowDist : ESP.Config.PlayerRendering.ShowDist;
             var showWep = IsAI ? ESP.Config.AIRendering.ShowWeapons : ESP.Config.PlayerRendering.ShowWeapons;
-            var drawLabel = showInfo || showDist || showWep;
+            var showRank = ESP.Config.PlayerRendering.ShowRank;
+            var drawLabel = showInfo || showWep || showRank;
 
             if (IsHostile && (ESP.Config.HighAlertMode is HighAlertMode.AllPlayers ||
                               (ESP.Config.HighAlertMode is HighAlertMode.HumansOnly && IsHuman))) // Check High Alert
@@ -1653,7 +1683,7 @@ namespace eft_dma_radar.Tarkov.EFTPlayer
             {
                 if (!this.Skeleton.UpdateESPBuffer())
                     return;
-                canvas.DrawPoints(SKPointMode.Lines, Skeleton.ESPBuffer, espPaints.Item1);
+                canvas.DrawPoints(SKPointMode.Lines, eft_dma_shared.Common.Players.Skeleton.ESPBuffer, espPaints.Item1);
             }
             else if (renderMode is ESPPlayerRenderMode.Box)
             {
@@ -1693,14 +1723,42 @@ namespace eft_dma_radar.Tarkov.EFTPlayer
                     lines.Add($"{fac}{Name}{health}");
                 }
 
-                if (showWep)
-                    lines.Add($"({Hands?.CurrentItem})");
+                if (showWep) {
+                    lines.Add($"{Hands?.CurrentItem}");
+
+                    if (this is ObservedPlayer observed && Config.ESP.ShowIfAiming)
+                    {
+                        var handCtrlPtr = Memory.ReadPtr(observed.HandsControllerAddr);
+                        bool isAiming = Memory.ReadValue<bool>(Memory.ReadPtrChain(handCtrlPtr, new uint[] { Offsets.ObservedHandsController.BundleAnimationBones, Offsets.BundleAnimationBonesController.ProceduralWeaponAnimation }) + Offsets.ProceduralWeaponAnimationController.IsAiming);
+                        if (isAiming)
+                        {
+                            lines.Add("(AIMING)");
+                        }
+                        else
+                        {
+                            if (lines.Exists(x => x.Contains("(AIMING)")))
+                            {
+                                lines.Remove("(AIMING)");
+                            }
+                        }
+                    }
+                
+                }
                 if (showDist)
                 {
                     if (lines.Count == 0)
                         lines.Add($"{(int)dist}m");
                     else
                         lines[0] += $" ({(int)dist}m)";
+                }
+                if (showRank && this.IsHumanActive)
+                {
+                    var rankLine = new List<string>();
+                    if (!CameraManagerBase.WorldToScreen(ref Skeleton.Bones[Bones.HumanHead].Position, out var rankScreenPos, true, true))
+                        return;
+                    rankScreenPos -= new SKPoint(0f, 5f);
+                    rankLine.Add($"LVL: {Prestige} / {Level} | {Hours}h");
+                    rankScreenPos.DrawESPText(canvas, this, localPlayer, false, espPaints.Item2, rankLine.ToArray());
                 }
 
                 var textPt = new SKPoint(baseScrPos.X,

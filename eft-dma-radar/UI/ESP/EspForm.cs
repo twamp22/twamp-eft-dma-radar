@@ -406,6 +406,8 @@ namespace eft_dma_radar.UI.ESP
                             DrawAimFOV(canvas);
                         if (Config.ESP.ShowFPS)
                             DrawFPS(canvas);
+                        if (Config.ESP.ShowTime)
+                            DrawTime(canvas);
                         if (Config.ESP.ShowMagazine)
                             DrawMagazine(canvas, localPlayer);
                         if (Config.ESP.ShowFireportAim &&
@@ -581,6 +583,38 @@ namespace eft_dma_radar.UI.ESP
         }
 
         /// <summary>
+        /// Draw InGame Time
+        /// </summary>
+        /// 
+        private ulong GetUnixTime()
+        {
+            var unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            return (ulong)(DateTime.UtcNow - unixEpoch).TotalMilliseconds;
+        }
+        public static ulong Hrs(ulong num)
+        {
+            return 1000 * 60 * 60 * num;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DrawTime(SKCanvas canvas)
+        {
+            ulong time = GetUnixTime();
+            ulong oneDay = Hrs(24);
+            ulong russia = Hrs(3);
+
+            ulong offsetDay = russia;
+            ulong offsetNight = russia + Hrs(12);
+
+            DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            DateTime tarkovTimeDay = epoch.AddSeconds(((offsetDay + (time * 7)) % oneDay) / 1000);
+            DateTime tarkovTimeNight = epoch.AddSeconds(((offsetNight + (time * 7)) % oneDay) / 1000);
+            string raidTime = tarkovTimeDay.ToString("HH:mm:ss") + " - " + tarkovTimeNight.ToString("HH:mm:ss");
+            var textPt = new SKPoint(CameraManagerBase.Viewport.Left + 80f * Config.ESP.FontScale,
+                CameraManagerBase.Viewport.Top + 533f * Config.ESP.FontScale);
+            canvas.DrawText(raidTime, textPt, SKPaints.TextBasicESPLeftAligned);
+        }
+
+        /// <summary>
         /// Draw the Aim FOV Circle.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -670,6 +704,8 @@ namespace eft_dma_radar.UI.ESP
         /// </summary>
         private static void DrawQuests(SKCanvas canvas, LocalPlayer localPlayer)
         {
+            if (!localPlayer.IsPmc)
+                return;
             var questItems = Loot?.Where(x => x is QuestItem);
             if (questItems is not null)
                 foreach (var item in questItems)

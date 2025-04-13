@@ -56,6 +56,8 @@ namespace eft_dma_radar.Tarkov.GameWorld.Exits
 
         public void Draw(SKCanvas canvas, LoneMapParams mapParams, ILocalPlayer localPlayer)
         {
+            if (Name.ToLower().Contains("lab") && !Memory.LocalPlayer.IsPmc)
+                return;
             var heightDiff = Position.Y - localPlayer.Position.Y;
             var paint = GetPaint();
             var point = Position.ToMapPos(mapParams.Map).ToZoomedPos(mapParams);
@@ -100,7 +102,7 @@ namespace eft_dma_radar.Tarkov.GameWorld.Exits
 
         public void DrawESP(SKCanvas canvas, LocalPlayer localPlayer)
         {
-            if (!localPlayer.IsPmc)
+            if (Name.ToLower().Contains("lab") && !localPlayer.IsPmc)
                 return;
             if (!CameraManagerBase.WorldToScreen(ref _position, out var scrPos))
                 return;

@@ -236,7 +236,62 @@ namespace eft_dma_radar.Tarkov.GameWorld.Exits
                 return;
             if (Name.ToLower().Contains("secret") && (Status is EStatus.Pending || Status is EStatus.Open)) // when we have found the secret letter, draw extract
             {
-                var label1 = $"{Name} ({Status.GetDescription()})";
+                #region Secret Name Filtering
+                string newName = null;
+                switch (Name.ToLower())
+                {
+                    /// Customs
+                    case "customs_secret_voron_boat":
+                        newName = "Smugglers' Boat (Secret)";
+                        break;
+                    case "customs_secret_voron_bunker":
+                        newName = "Smugglers' Bunker (ZB-1012) (Secret)";
+                        break;
+                    case "customs_sniper_exit":
+                        newName = "Railroad Passage (Flare)";
+                        break;
+                    case "custom_scav_pmc":
+                        newName = "Boiler Room Basement (Co-op)";
+                        break;
+                    /// Streets
+                    case "streets_secret_onyx":
+                        newName = "Smugglers' Basement (Secret)";
+                        break;
+                    /// Shoreline
+                    case "shoreline_secret_heartbeat":
+                        newName = "Mountain Bunker (Secret)";
+                        break;
+                    /// Factory
+                    case "factory_secret_ark":
+                        newName = "Smugglers' Passage (Secret)";
+                        break;
+                    /// Ground Zero
+                    case "groundzero_secret_adaptation":
+                        newName = "Tartowers Sales Office (Secret)";
+                        break;
+                    /// Woods
+                    case "wood_sniper_exit":
+                        newName = "Power Line Passage (Flare)";
+                        break;
+                    case "woods_secret_minefield":
+                        newName = "Railway Bridge to Tarkov (Secret)";
+                        break;
+                    /// Reserve
+                    case "reserve_secret_minefield":
+                        newName = "Exit to Woods (Secret)";
+                        break;
+                    /// Lighthouse
+                    case "lighthouse_secret_minefield":
+                        newName = "Passage by the Lake (Secret)";
+                        break;
+                    /// The Labyrinth
+                    case "labyrinth_secret_tagilla_key":
+                        newName = "Ariadne's Path (Secret)";
+                        break;
+
+                }
+                #endregion
+                var label1 = $"{(newName is null ? Name : newName)} ({Status.GetDescription()})";
                 scrPos.DrawESPText(canvas, this, localPlayer, ESP.Config.ShowDistances, SKPaints.TextExfilESP, label1);
                 return;
             }

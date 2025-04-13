@@ -129,6 +129,8 @@ namespace eft_dma_radar.UI.Radar
             checkBox_AimBotEnabled = new CheckBox();
             checkBox_NoRecoilSway = new CheckBox();
             checkBox_Chams = new CheckBox();
+            checkBox_ThermalVision = new CheckBox();
+            checkBox_NightVision = new CheckBox();
             checkBox_InfStamina = new CheckBox();
             checkBox_MoveSpeed = new CheckBox();
             checkBox_FastWeaponOps = new CheckBox();
@@ -140,6 +142,7 @@ namespace eft_dma_radar.UI.Radar
             checkBox_NoWepMalf = new CheckBox();
             checkBox_FullBright = new CheckBox();
             checkBox_RageMode = new CheckBox();
+            button_instaPlant = new Button();
             button_AntiAfk = new Button();
             button_GymHack = new Button();
             label22 = new Label();
@@ -225,10 +228,12 @@ namespace eft_dma_radar.UI.Radar
             checkBox_ESP_AimLock = new CheckBox();
             checkBox_ESP_RaidStats = new CheckBox();
             checkBox_ESP_StatusText = new CheckBox();
+            checkBox_displayRaidTIme = new CheckBox();
             checkBox_ESP_FPS = new CheckBox();
             label27 = new Label();
             flowLayoutPanel_ESP_PlayerRender = new FlowLayoutPanel();
             label18 = new Label();
+            checkBox_IsAiming = new CheckBox();
             radioButton_ESPRender_None = new RadioButton();
             radioButton_ESPRender_Bones = new RadioButton();
             radioButton_ESPRender_Box = new RadioButton();
@@ -236,6 +241,7 @@ namespace eft_dma_radar.UI.Radar
             checkBox_ESPRender_Labels = new CheckBox();
             checkBox_ESPRender_Weapons = new CheckBox();
             checkBox_ESPRender_Dist = new CheckBox();
+            checkBox_ShowRank = new CheckBox();
             flowLayoutPanel_ESP_AIRender = new FlowLayoutPanel();
             label19 = new Label();
             radioButton_ESPAIRender_None = new RadioButton();
@@ -1226,6 +1232,7 @@ namespace eft_dma_radar.UI.Radar
             flowLayoutPanel_WebRadarSettings.Controls.Add(textBox_WebRadarPassword);
             flowLayoutPanel_WebRadarSettings.Controls.Add(linkLabel_WebRadarLink);
             flowLayoutPanel_WebRadarSettings.Dock = DockStyle.Top;
+            flowLayoutPanel_WebRadarSettings.Enabled = false;
             flowLayoutPanel_Settings.SetFlowBreak(flowLayoutPanel_WebRadarSettings, true);
             flowLayoutPanel_WebRadarSettings.Location = new Point(3, 537);
             flowLayoutPanel_WebRadarSettings.Name = "flowLayoutPanel_WebRadarSettings";
@@ -1414,6 +1421,8 @@ namespace eft_dma_radar.UI.Radar
             flowLayoutPanel_MemWrites.Controls.Add(checkBox_AimBotEnabled);
             flowLayoutPanel_MemWrites.Controls.Add(checkBox_NoRecoilSway);
             flowLayoutPanel_MemWrites.Controls.Add(checkBox_Chams);
+            flowLayoutPanel_MemWrites.Controls.Add(checkBox_ThermalVision);
+            flowLayoutPanel_MemWrites.Controls.Add(checkBox_NightVision);
             flowLayoutPanel_MemWrites.Controls.Add(checkBox_InfStamina);
             flowLayoutPanel_MemWrites.Controls.Add(checkBox_MoveSpeed);
             flowLayoutPanel_MemWrites.Controls.Add(checkBox_FastWeaponOps);
@@ -1425,6 +1434,7 @@ namespace eft_dma_radar.UI.Radar
             flowLayoutPanel_MemWrites.Controls.Add(checkBox_NoWepMalf);
             flowLayoutPanel_MemWrites.Controls.Add(checkBox_FullBright);
             flowLayoutPanel_MemWrites.Controls.Add(checkBox_RageMode);
+            flowLayoutPanel_MemWrites.Controls.Add(button_instaPlant);
             flowLayoutPanel_MemWrites.Controls.Add(button_AntiAfk);
             flowLayoutPanel_MemWrites.Controls.Add(button_GymHack);
             flowLayoutPanel_MemWrites.Controls.Add(label22);
@@ -1532,6 +1542,29 @@ namespace eft_dma_radar.UI.Radar
             checkBox_Chams.Text = "Chams";
             checkBox_Chams.UseVisualStyleBackColor = true;
             checkBox_Chams.CheckedChanged += checkBox_Chams_CheckedChanged;
+            // 
+            // checkBox_ThermalVision
+            // 
+            checkBox_ThermalVision.AutoSize = true;
+            checkBox_ThermalVision.Location = new Point(3, 78);
+            checkBox_ThermalVision.Name = "checkBox_ThermalVision";
+            checkBox_ThermalVision.Size = new Size(104, 19);
+            checkBox_ThermalVision.TabIndex = 80;
+            checkBox_ThermalVision.Text = "Thermal Vision";
+            checkBox_ThermalVision.UseVisualStyleBackColor = true;
+            checkBox_ThermalVision.CheckedChanged += checkBox_ThermalVision_CheckedChanged;
+            // 
+            // checkBox_NightVision
+            // 
+            checkBox_NightVision.AutoSize = true;
+            flowLayoutPanel_MemWrites.SetFlowBreak(checkBox_NightVision, true);
+            checkBox_NightVision.Location = new Point(113, 78);
+            checkBox_NightVision.Name = "checkBox_NightVision";
+            checkBox_NightVision.Size = new Size(91, 19);
+            checkBox_NightVision.TabIndex = 79;
+            checkBox_NightVision.Text = "Night Vision";
+            checkBox_NightVision.UseVisualStyleBackColor = true;
+            checkBox_NightVision.CheckedChanged += checkBox_NightVision_CheckedChanged;
             // 
             // checkBox_InfStamina
             // 
@@ -1664,6 +1697,17 @@ namespace eft_dma_radar.UI.Radar
             checkBox_RageMode.Text = "Rage Mode (Risky)";
             checkBox_RageMode.UseVisualStyleBackColor = true;
             checkBox_RageMode.CheckedChanged += checkBox_RageMode_CheckedChanged;
+            // 
+            // button_instaPlant
+            // 
+            button_instaPlant.AutoSize = true;
+            button_instaPlant.Location = new Point(3, 153);
+            button_instaPlant.Name = "button_instaPlant";
+            button_instaPlant.Size = new Size(83, 25);
+            button_instaPlant.TabIndex = 78;
+            button_instaPlant.Text = "Instant Plant";
+            button_instaPlant.UseVisualStyleBackColor = true;
+            button_instaPlant.Click += button_instaPlant_Click;
             // 
             // button_AntiAfk
             // 
@@ -2435,6 +2479,7 @@ namespace eft_dma_radar.UI.Radar
             flowLayoutPanel_ESPSettings.Controls.Add(checkBox_ESP_AimLock);
             flowLayoutPanel_ESPSettings.Controls.Add(checkBox_ESP_RaidStats);
             flowLayoutPanel_ESPSettings.Controls.Add(checkBox_ESP_StatusText);
+            flowLayoutPanel_ESPSettings.Controls.Add(checkBox_displayRaidTIme);
             flowLayoutPanel_ESPSettings.Controls.Add(checkBox_ESP_FPS);
             flowLayoutPanel_ESPSettings.Controls.Add(checkBox_ESP_ClickThrough);
             flowLayoutPanel_ESPSettings.Controls.Add(checkBox_ESP_AlwaysOnTop);
@@ -2679,6 +2724,17 @@ namespace eft_dma_radar.UI.Radar
             checkBox_ESP_StatusText.UseVisualStyleBackColor = true;
             checkBox_ESP_StatusText.CheckedChanged += checkBox_ESP_StatusText_CheckedChanged;
             // 
+            // checkBox_displayRaidTIme
+            // 
+            checkBox_displayRaidTIme.AutoSize = true;
+            checkBox_displayRaidTIme.Location = new Point(238, 96);
+            checkBox_displayRaidTIme.Name = "checkBox_displayRaidTIme";
+            checkBox_displayRaidTIme.Size = new Size(93, 19);
+            checkBox_displayRaidTIme.TabIndex = 74;
+            checkBox_displayRaidTIme.Text = "Display Time";
+            checkBox_displayRaidTIme.UseVisualStyleBackColor = true;
+            checkBox_displayRaidTIme.CheckedChanged += checkBox_displayRaidTIme_CheckedChanged;
+            // 
             // checkBox_ESP_FPS
             // 
             checkBox_ESP_FPS.AutoSize = true;
@@ -2705,6 +2761,7 @@ namespace eft_dma_radar.UI.Radar
             flowLayoutPanel_ESP_PlayerRender.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             flowLayoutPanel_ESP_PlayerRender.BorderStyle = BorderStyle.FixedSingle;
             flowLayoutPanel_ESP_PlayerRender.Controls.Add(label18);
+            flowLayoutPanel_ESP_PlayerRender.Controls.Add(checkBox_IsAiming);
             flowLayoutPanel_ESP_PlayerRender.Controls.Add(radioButton_ESPRender_None);
             flowLayoutPanel_ESP_PlayerRender.Controls.Add(radioButton_ESPRender_Bones);
             flowLayoutPanel_ESP_PlayerRender.Controls.Add(radioButton_ESPRender_Box);
@@ -2712,6 +2769,7 @@ namespace eft_dma_radar.UI.Radar
             flowLayoutPanel_ESP_PlayerRender.Controls.Add(checkBox_ESPRender_Labels);
             flowLayoutPanel_ESP_PlayerRender.Controls.Add(checkBox_ESPRender_Weapons);
             flowLayoutPanel_ESP_PlayerRender.Controls.Add(checkBox_ESPRender_Dist);
+            flowLayoutPanel_ESP_PlayerRender.Controls.Add(checkBox_ShowRank);
             flowLayoutPanel_ESP_PlayerRender.Location = new Point(3, 121);
             flowLayoutPanel_ESP_PlayerRender.Name = "flowLayoutPanel_ESP_PlayerRender";
             flowLayoutPanel_ESP_PlayerRender.Size = new Size(253, 77);
@@ -2727,6 +2785,18 @@ namespace eft_dma_radar.UI.Radar
             label18.Size = new Size(113, 15);
             label18.TabIndex = 71;
             label18.Text = "Player Render Mode";
+            // 
+            // checkBox_IsAiming
+            // 
+            checkBox_IsAiming.AutoSize = true;
+            flowLayoutPanel_ESP_PlayerRender.SetFlowBreak(checkBox_IsAiming, true);
+            checkBox_IsAiming.Location = new Point(3, 28);
+            checkBox_IsAiming.Name = "checkBox_IsAiming";
+            checkBox_IsAiming.Size = new Size(81, 19);
+            checkBox_IsAiming.TabIndex = 73;
+            checkBox_IsAiming.Text = "Is Aiming?";
+            checkBox_IsAiming.UseVisualStyleBackColor = true;
+            checkBox_IsAiming.CheckedChanged += checkBox_IsAiming_CheckedChanged;
             // 
             // radioButton_ESPRender_None
             // 
@@ -2808,6 +2878,17 @@ namespace eft_dma_radar.UI.Radar
             checkBox_ESPRender_Dist.Text = "Dist";
             checkBox_ESPRender_Dist.UseVisualStyleBackColor = true;
             checkBox_ESPRender_Dist.CheckedChanged += checkBox_ESPRender_Dist_CheckedChanged;
+            // 
+            // checkBox_ShowRank
+            // 
+            checkBox_ShowRank.AutoSize = true;
+            checkBox_ShowRank.Location = new Point(201, 78);
+            checkBox_ShowRank.Name = "checkBox_ShowRank";
+            checkBox_ShowRank.Size = new Size(52, 19);
+            checkBox_ShowRank.TabIndex = 72;
+            checkBox_ShowRank.Text = "Rank";
+            checkBox_ShowRank.UseVisualStyleBackColor = true;
+            checkBox_ShowRank.CheckedChanged += checkBox_ShowRank_CheckedChanged;
             // 
             // flowLayoutPanel_ESP_AIRender
             // 
@@ -3916,6 +3997,12 @@ namespace eft_dma_radar.UI.Radar
         private CheckBox checkBox_streamerMode;
         private LinkLabel linkLabel_CheckForUpdates;
         private CheckBox checkBox_ESP_Switches;
+        private CheckBox checkBox_displayRaidTIme;
+        private Button button_instaPlant;
+        private CheckBox checkBox_ThermalVision;
+        private CheckBox checkBox_NightVision;
+        private CheckBox checkBox_ShowRank;
+        private CheckBox checkBox_IsAiming;
     }
 }
 

@@ -472,6 +472,12 @@ namespace eft_dma_radar.UI.Misc
         [JsonPropertyName("showFPS")]
         public bool ShowFPS { get; set; } = false;
 
+        // <summary>
+        // Show InGame Time (for Tasking)
+        // <summary>
+        [JsonPropertyName("showTime")]
+        public bool ShowTime { get; set; } = false;
+        
         /// <summary>
         /// Show Clickthrough
         /// </summary>
@@ -535,7 +541,8 @@ namespace eft_dma_radar.UI.Misc
             RenderingMode = ESPPlayerRenderMode.Bones,
             ShowLabels = true,
             ShowWeapons = true,
-            ShowDist = false
+            ShowDist = false,
+            ShowRank = true
         };
 
         /// <summary>
@@ -567,6 +574,12 @@ namespace eft_dma_radar.UI.Misc
         /// </summary>
         [JsonPropertyName("showRaidStats")]
         public bool ShowRaidStats { get; set; } = false;
+
+        /// <summary>
+        /// Draw "(AIMING)" when a player is Aiming Down Sight
+        /// </summary>
+        [JsonPropertyName("isAiming")]
+        public bool ShowIfAiming { get; set; } = true;
 
         /// <summary>
         /// Display Status (aimbot enabled, bone, wide lean, etc.) in top center of ESP Screen.
@@ -679,6 +692,12 @@ namespace eft_dma_radar.UI.Misc
         /// </summary>
         [JsonPropertyName("showDist")]
         public bool ShowDist { get; set; }
+        
+        /// <summary>
+        /// Show rank above this player.
+        /// </summary>
+        [JsonPropertyName("showRank")]
+        public bool ShowRank { get; set; }
     }
 
     public sealed class MemWritesConfig
@@ -706,11 +725,13 @@ namespace eft_dma_radar.UI.Misc
         /// </summary>
         [JsonPropertyName("hideRaidCode")]
         public bool HideRaidCode { get; set; } = false;
+        
         /// <summary>
         /// Enables Streamer Mode.
         /// </summary>
         [JsonPropertyName("streamerMode")]
         public bool StreamerMode { get; set; } = false;
+        
         /// <summary>
         /// Enable No Recoil Feature on Startup.
         /// </summary>
@@ -736,10 +757,26 @@ namespace eft_dma_radar.UI.Misc
         public bool NoVisor { get; set; } = false;
 
         /// <summary>
+        /// Enable ThermalVision
+        /// </summary>
+        public bool ThermalVision { get; set; } = false;
+
+        /// <summary>
+        /// Enable Nightvision
+        /// </summary>
+        public bool Nightvision { get; set; } = false;
+
+        /// <summary>
         /// Enable Inf Stamina Feature on Startup.
         /// </summary>
         [JsonPropertyName("enableInfStamina2")]
         public bool InfStamina { get; set; } = false;
+
+        /// <summary>
+        /// Enable instant planting of Quest Items
+        /// </summary>
+        [JsonPropertyName("enableInstaPlant")]
+        public bool InstaPlant { get; set; } = false;
 
         /// <summary>
         /// Chams Feature Config
@@ -778,7 +815,7 @@ namespace eft_dma_radar.UI.Misc
         public WideLeanConfig WideLean { get; set; } = new();
 
         /// <summary>
-        /// 1.4x Move Speed is Enabled.
+        /// 1.2x Move Speed is Enabled.
         /// </summary>
         [JsonPropertyName("moveSpeed2")]
         public bool MoveSpeed { get; set; } = false;

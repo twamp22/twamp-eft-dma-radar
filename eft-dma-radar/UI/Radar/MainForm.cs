@@ -2145,6 +2145,7 @@ namespace eft_dma_radar.UI.Radar
         /// </summary>
         private void SetUiValues()
         {
+            checkBox_displayRaidTIme.Checked = Config.ESP.ShowTime;
             comboBox_LootFiltersItem_Items.Items
                 .AddRange(EftDataManager.AllItems.Values
                 .OrderBy(x => x.Name)
@@ -2813,8 +2814,10 @@ namespace eft_dma_radar.UI.Radar
             checkBox_ESPRender_Dist.Checked = Config.ESP.PlayerRendering.ShowDist;
             checkBox_ESPAIRender_Labels.Checked = Config.ESP.AIRendering.ShowLabels;
             checkBox_ESPAIRender_Weapons.Checked = Config.ESP.AIRendering.ShowWeapons;
+            checkBox_ShowRank.Checked = Config.ESP.PlayerRendering.ShowRank;
             checkBox_ESPAIRender_Dist.Checked = Config.ESP.AIRendering.ShowDist;
             textBox_EspFpsCap.Text = Config.ESP.FPSCap.ToString();
+            checkBox_displayRaidTIme.Checked = Config.ESP.ShowTime;
             checkBox_ESP_Exfils.Checked = Config.ESP.ShowExfils;
             checkBox_ESP_Switches.Checked = Config.ESP.ShowSwitches;
             checkBox_ESP_Loot.Checked = Config.ESP.ShowLoot;
@@ -2826,6 +2829,7 @@ namespace eft_dma_radar.UI.Radar
             checkBox_ESP_ShowMines.Checked = Config.ESP.ShowMines;
             checkBox_ESP_ShowMag.Checked = Config.ESP.ShowMagazine;
             checkBox_ESP_RaidStats.Checked = Config.ESP.ShowRaidStats;
+            checkBox_IsAiming.Checked = Config.ESP.ShowIfAiming;
             checkBox_ESP_StatusText.Checked = Config.ESP.ShowStatusText;
             checkBox_ESP_FPS.Checked = Config.ESP.ShowFPS;
             checkBox_ESP_ClickThrough.Checked = Config.ESP.ClickThrough;
@@ -3920,6 +3924,62 @@ namespace eft_dma_radar.UI.Radar
                     _switches.Add(new Tarkov.GameWorld.Exits.Switch(kvp.Value, kvp.Key));
                 }
             }
+        }
+        private void checkBox_displayRaidTIme_CheckedChanged(object sender, EventArgs e)
+        {
+            Config.ESP.ShowTime = checkBox_displayRaidTIme.Checked;
+        }
+
+        private void button_instaPlant_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                MemWriteFeature<InstantPlant>.Instance.Enabled = true;
+                MessageBox.Show("Instant Plant set! enabled until game restart.", "Instant Plant", MessageBoxButtons.OK);
+                button_instaPlant.Enabled = false;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Instant Plant failed to set, you are maybe paged out, try restarting your game.\n{ex}", "Instant Plant", MessageBoxButtons.OK);
+            }
+        }
+
+        private void comboBox_WideLeanMode_SelectedIndexChanged_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void checkBox_ThermalVision_CheckedChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                MemWriteFeature<ThermalVision>.Instance.Enabled = checkBox_ThermalVision.Checked;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"ThermalVision failed\n{ex}", "Thermal Vision", MessageBoxButtons.OK);
+            }
+        }
+
+        private void checkBox_NightVision_CheckedChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                MemWriteFeature<NightVision>.Instance.Enabled = checkBox_NightVision.Checked;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"NightVision failed\n{ex}", "Night Vision", MessageBoxButtons.OK);
+            }
+        }
+
+        private void checkBox_ShowRank_CheckedChanged(object sender, EventArgs e)
+        {
+            Config.ESP.PlayerRendering.ShowRank = checkBox_ShowRank.Checked;
+        }
+        private void checkBox_IsAiming_CheckedChanged(object sender, EventArgs e)
+        {
+            Config.ESP.ShowIfAiming = checkBox_IsAiming.Checked;
         }
     }
 }
